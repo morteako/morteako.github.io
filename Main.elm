@@ -184,7 +184,7 @@ view model =
 
 unadjustableTextarea : List (Attribute msg) -> List (Html msg) -> Html msg
 unadjustableTextarea attributes htmls =
-    textarea (class "test" :: attributes) htmls
+    textarea (class "xxx" :: attributes) htmls
 
 
 
