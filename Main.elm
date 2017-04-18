@@ -168,7 +168,7 @@ view model =
     in
         div [] <|
             ([ div [ class "body" ] [ text model.infoMsg ]
-             , div [] [ text <| "Distanse valgt : " ++ distanceToString model.distanceChosen ]
+             , div [] [ text <| "TEST Distanse valgt : " ++ distanceToString model.distanceChosen ]
              , unadjustableTextarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
              , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput Input ] []
              , unadjustableTextarea [ cols 30, rows nrOfLaps, readonly True, placeholder lapText ] []
@@ -184,7 +184,7 @@ view model =
 
 unadjustableTextarea : List (Attribute msg) -> List (Html msg) -> Html msg
 unadjustableTextarea attributes htmls =
-    textarea (class "xxx" :: attributes) htmls
+    textarea (class "test" :: attributes) htmls
 
 
 
