@@ -8397,38 +8397,71 @@ var _elm_lang$html$Html_Events$Options = F2(
 		return {stopPropagation: a, preventDefault: b};
 	});
 
+var _user$project$Utils$maybeFuncWithDefault = F3(
+	function (f, $default, x) {
+		return A2(
+			_elm_lang$core$Maybe$withDefault,
+			$default,
+			f(x));
+	});
+var _user$project$Utils$tuple3ToList = function (_p0) {
+	var _p1 = _p0;
+	return {
+		ctor: '::',
+		_0: _p1._0,
+		_1: {
+			ctor: '::',
+			_0: _p1._1,
+			_1: {
+				ctor: '::',
+				_0: _p1._2,
+				_1: {ctor: '[]'}
+			}
+		}
+	};
+};
+var _user$project$Utils$tupleMap3 = F2(
+	function (f, _p2) {
+		var _p3 = _p2;
+		return {
+			ctor: '_Tuple3',
+			_0: f(_p3._0),
+			_1: f(_p3._1),
+			_2: f(_p3._2)
+		};
+	});
 var _user$project$Utils$average = function (nrs) {
 	return _elm_lang$core$List$sum(nrs) / _elm_lang$core$Basics$toFloat(
 		_elm_lang$core$List$length(nrs));
 };
 var _user$project$Utils$map2Full = F4(
 	function (f2, f1, xs, ys) {
-		var _p0 = {ctor: '_Tuple2', _0: xs, _1: ys};
-		if (_p0._0.ctor === '[]') {
+		var _p4 = {ctor: '_Tuple2', _0: xs, _1: ys};
+		if (_p4._0.ctor === '[]') {
 			return A2(_elm_lang$core$List$map, f1, ys);
 		} else {
-			if (_p0._1.ctor === '[]') {
+			if (_p4._1.ctor === '[]') {
 				return A2(_elm_lang$core$List$map, f1, xs);
 			} else {
 				return {
 					ctor: '::',
-					_0: A2(f2, _p0._0._0, _p0._1._0),
-					_1: A4(_user$project$Utils$map2Full, f2, f1, _p0._0._1, _p0._1._1)
+					_0: A2(f2, _p4._0._0, _p4._1._0),
+					_1: A4(_user$project$Utils$map2Full, f2, f1, _p4._0._1, _p4._1._1)
 				};
 			}
 		}
 	});
 var _user$project$Utils$getNumberOfZeroes = function (rounding) {
-	var _p1 = rounding;
-	if (_p1.ctor === 'OneDecimal') {
+	var _p5 = rounding;
+	if (_p5.ctor === 'OneDecimal') {
 		return 1;
 	} else {
 		return 2;
 	}
 };
 var _user$project$Utils$getRoundingFactor = function (rounding) {
-	var _p2 = rounding;
-	if (_p2.ctor === 'OneDecimal') {
+	var _p6 = rounding;
+	if (_p6.ctor === 'OneDecimal') {
 		return 10.0;
 	} else {
 		return 100.0;
@@ -8436,30 +8469,9 @@ var _user$project$Utils$getRoundingFactor = function (rounding) {
 };
 var _user$project$Utils$roundToDec = F2(
 	function (roundingType, number) {
-		return function (x) {
-			return A2(_elm_lang$core$String$contains, '.', x) ? x : A2(_elm_lang$core$Basics_ops['++'], x, '.');
-		}(
-			_elm_lang$core$Basics$toString(
-				function (x) {
-					return x / _user$project$Utils$getRoundingFactor(roundingType);
-				}(
-					_elm_lang$core$Basics$toFloat(
-						_elm_lang$core$Basics$round(
-							A2(
-								F2(
-									function (x, y) {
-										return x * y;
-									}),
-								_user$project$Utils$getRoundingFactor(roundingType),
-								number))))));
-	});
-var _user$project$Utils$roundToOneDec = function (number) {
-	return function (x) {
-		return A2(_elm_lang$core$String$contains, '.', x) ? x : A2(_elm_lang$core$Basics_ops['++'], x, '.0');
-	}(
-		_elm_lang$core$Basics$toString(
+		return _elm_lang$core$Basics$toString(
 			function (x) {
-				return x / 10.0;
+				return x / _user$project$Utils$getRoundingFactor(roundingType);
 			}(
 				_elm_lang$core$Basics$toFloat(
 					_elm_lang$core$Basics$round(
@@ -8468,9 +8480,9 @@ var _user$project$Utils$roundToOneDec = function (number) {
 								function (x, y) {
 									return x * y;
 								}),
-							10,
-							number))))));
-};
+							_user$project$Utils$getRoundingFactor(roundingType),
+							number)))));
+	});
 var _user$project$Utils$unlines = function (ss) {
 	return A2(_elm_lang$core$String$join, '\n', ss);
 };
@@ -8483,15 +8495,15 @@ var _user$project$Utils$resultFoldr = F3(
 			_elm_lang$core$List$foldr,
 			F2(
 				function (x, y) {
-					var _p3 = {ctor: '_Tuple2', _0: x, _1: y};
-					if (_p3._0.ctor === 'Ok') {
-						if (_p3._1.ctor === 'Ok') {
-							return A2(f, _p3._1._0, _p3._0._0);
+					var _p7 = {ctor: '_Tuple2', _0: x, _1: y};
+					if (_p7._0.ctor === 'Ok') {
+						if (_p7._1.ctor === 'Ok') {
+							return A2(f, _p7._1._0, _p7._0._0);
 						} else {
-							return _elm_lang$core$Result$Err(_p3._1._0);
+							return _elm_lang$core$Result$Err(_p7._1._0);
 						}
 					} else {
-						return _elm_lang$core$Result$Err(_p3._0._0);
+						return _elm_lang$core$Result$Err(_p7._0._0);
 					}
 				}),
 			v,
@@ -8503,18 +8515,18 @@ var _user$project$Utils$resultMap = F2(
 			function (acc, curXs) {
 				iter:
 				while (true) {
-					var _p4 = curXs;
-					if (_p4.ctor === '[]') {
+					var _p8 = curXs;
+					if (_p8.ctor === '[]') {
 						return _elm_lang$core$Result$Ok(acc);
 					} else {
-						var _p5 = f(_p4._0);
-						if (_p5.ctor === 'Err') {
-							return _elm_lang$core$Result$Err(_p5._0);
+						var _p9 = f(_p8._0);
+						if (_p9.ctor === 'Err') {
+							return _elm_lang$core$Result$Err(_p9._0);
 						} else {
-							var _v6 = {ctor: '::', _0: _p5._0, _1: acc},
-								_v7 = _p4._1;
-							acc = _v6;
-							curXs = _v7;
+							var _v8 = {ctor: '::', _0: _p9._0, _1: acc},
+								_v9 = _p8._1;
+							acc = _v8;
+							curXs = _v9;
 							continue iter;
 						}
 					}
@@ -8524,12 +8536,12 @@ var _user$project$Utils$resultMap = F2(
 			iter,
 			{ctor: '[]'},
 			xs);
-		var _p6 = res;
-		if (_p6.ctor === 'Err') {
-			return _elm_lang$core$Result$Err(_p6._0);
+		var _p10 = res;
+		if (_p10.ctor === 'Err') {
+			return _elm_lang$core$Result$Err(_p10._0);
 		} else {
 			return _elm_lang$core$Result$Ok(
-				_elm_lang$core$List$reverse(_p6._0));
+				_elm_lang$core$List$reverse(_p10._0));
 		}
 	});
 var _user$project$Utils$accumulate = F6(
@@ -8549,8 +8561,8 @@ var _user$project$Utils$accumulate = F6(
 	});
 var _user$project$Utils$untilScan = F4(
 	function (pred, next, f, v) {
-		var _p7 = pred(v);
-		if (_p7 === false) {
+		var _p11 = pred(v);
+		if (_p11 === false) {
 			return {
 				ctor: '::',
 				_0: f(v),
@@ -8567,14 +8579,14 @@ var _user$project$Utils$untilScan = F4(
 	});
 var _user$project$Utils$addMaybe = F2(
 	function (x, y) {
-		var _p8 = {ctor: '_Tuple2', _0: x, _1: y};
-		if (_p8._0.ctor === 'Nothing') {
+		var _p12 = {ctor: '_Tuple2', _0: x, _1: y};
+		if (_p12._0.ctor === 'Nothing') {
 			return _elm_lang$core$Maybe$Nothing;
 		} else {
-			if (_p8._1.ctor === 'Nothing') {
+			if (_p12._1.ctor === 'Nothing') {
 				return _elm_lang$core$Maybe$Nothing;
 			} else {
-				return _elm_lang$core$Maybe$Just(_p8._0._0 + _p8._1._0);
+				return _elm_lang$core$Maybe$Just(_p12._0._0 + _p12._1._0);
 			}
 		}
 	});
@@ -8593,9 +8605,9 @@ var _user$project$Utils$findIndex = F2(
 			xs);
 		return index;
 	});
-var _user$project$Utils$uncurryFlip = function (_p9) {
+var _user$project$Utils$uncurryFlip = function (_p13) {
 	return _elm_lang$core$Basics$uncurry(
-		_elm_lang$core$Basics$flip(_p9));
+		_elm_lang$core$Basics$flip(_p13));
 };
 var _user$project$Utils$replaceRegexWith = F3(
 	function (pat, replPat, str) {
@@ -8603,24 +8615,24 @@ var _user$project$Utils$replaceRegexWith = F3(
 			_elm_lang$core$Regex$replace,
 			_elm_lang$core$Regex$All,
 			_elm_lang$core$Regex$regex(pat),
-			function (_p10) {
+			function (_p14) {
 				return replPat;
 			},
 			str);
 	});
 var _user$project$Utils$zip = F2(
 	function (xs, ys) {
-		var _p11 = {ctor: '_Tuple2', _0: xs, _1: ys};
-		if (_p11._0.ctor === '[]') {
+		var _p15 = {ctor: '_Tuple2', _0: xs, _1: ys};
+		if (_p15._0.ctor === '[]') {
 			return {ctor: '[]'};
 		} else {
-			if (_p11._1.ctor === '[]') {
+			if (_p15._1.ctor === '[]') {
 				return {ctor: '[]'};
 			} else {
 				return {
 					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: _p11._0._0, _1: _p11._1._0},
-					_1: A2(_user$project$Utils$zip, _p11._0._1, _p11._1._1)
+					_0: {ctor: '_Tuple2', _0: _p15._0._0, _1: _p15._1._0},
+					_1: A2(_user$project$Utils$zip, _p15._0._1, _p15._1._1)
 				};
 			}
 		}
@@ -8697,11 +8709,48 @@ var _user$project$SpeedSkating$fixDecimalLength = F2(
 	function (rounding, nr) {
 		var roundedNr = A2(_user$project$Utils$roundToDec, rounding, nr);
 		var splitted = A2(_elm_lang$core$String$split, '.', roundedNr);
-		return 'HEI';
+		var _p0 = splitted;
+		_v0_2:
+		do {
+			if (_p0.ctor === '::') {
+				if (_p0._1.ctor === '[]') {
+					return A2(
+						_elm_lang$core$Basics_ops['++'],
+						_p0._0,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							'.',
+							A3(
+								_elm_lang$core$String$padRight,
+								_user$project$Utils$getNumberOfZeroes(rounding),
+								_elm_lang$core$Native_Utils.chr('0'),
+								'')));
+				} else {
+					if (_p0._1._1.ctor === '[]') {
+						return A2(
+							_elm_lang$core$Basics_ops['++'],
+							_p0._0,
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								'.',
+								A3(
+									_elm_lang$core$String$padRight,
+									_user$project$Utils$getNumberOfZeroes(rounding),
+									_elm_lang$core$Native_Utils.chr('0'),
+									_p0._1._0)));
+					} else {
+						break _v0_2;
+					}
+				}
+			} else {
+				break _v0_2;
+			}
+		} while(false);
+		return _elm_lang$core$String$concat(splitted);
 	});
 var _user$project$SpeedSkating$nextDecimalInfo = function (dec) {
-	var _p0 = dec;
-	if (_p0.ctor === 'TwoDecimal') {
+	var _p1 = dec;
+	if (_p1.ctor === 'TwoDecimal') {
 		return 'en desimal';
 	} else {
 		return 'to desimaler';
@@ -8713,8 +8762,8 @@ var _user$project$SpeedSkating$differenceToString = F2(
 		return A2(_elm_lang$core$String$startsWith, '-', number) ? number : A2(_elm_lang$core$Basics_ops['++'], '+', number);
 	});
 var _user$project$SpeedSkating$nextRounding = function (rounding) {
-	var _p1 = rounding;
-	if (_p1.ctor === 'OneDecimal') {
+	var _p2 = rounding;
+	if (_p2.ctor === 'OneDecimal') {
 		return _user$project$Utils$TwoDecimal;
 	} else {
 		return _user$project$Utils$OneDecimal;
@@ -8828,9 +8877,15 @@ var _user$project$SpeedSkating$validMinSec = function (time) {
 		_elm_lang$core$List$map,
 		_elm_lang$core$String$left(1),
 		A2(
-			_elm_lang$core$List$take,
-			2,
-			A2(_elm_lang$core$String$split, '.', time)));
+			_elm_lang$core$List$map,
+			A2(
+				_elm_lang$core$String$padLeft,
+				2,
+				_elm_lang$core$Native_Utils.chr('0')),
+			A2(
+				_elm_lang$core$List$take,
+				2,
+				A2(_elm_lang$core$String$split, '.', time))));
 	return A2(
 		_elm_lang$core$List$any,
 		function (x) {
@@ -8841,13 +8896,13 @@ var _user$project$SpeedSkating$validMinSec = function (time) {
 var _user$project$SpeedSkating$checkTimesGeneral = F3(
 	function (pred, errorMsg, times) {
 		var res = A2(_user$project$Utils$findIndex, pred, times);
-		var _p2 = res;
-		if (_p2.ctor === 'Just') {
+		var _p3 = res;
+		if (_p3.ctor === 'Just') {
 			return _elm_lang$core$Result$Err(
 				A2(
 					_elm_lang$core$Basics_ops['++'],
 					errorMsg,
-					_elm_lang$core$Basics$toString(_p2._0 + 1)));
+					_elm_lang$core$Basics$toString(_p3._0 + 1)));
 		} else {
 			return _elm_lang$core$Result$Ok(times);
 		}
@@ -8868,11 +8923,11 @@ var _user$project$SpeedSkating$checkNoNegative = function (lapTimes) {
 var _user$project$SpeedSkating$errorCheckSplitTimes = function (splitTimes) {
 	return A3(
 		_user$project$SpeedSkating$checkTimesGeneral,
-		function (_p3) {
+		function (_p4) {
 			return !A2(
 				_elm_lang$core$Regex$contains,
 				_elm_lang$core$Regex$regex('^\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}$'),
-				_p3);
+				_p4);
 		},
 		'feil input! Ikke på gyldig form : D.D.D , for linje : ',
 		splitTimes);
@@ -8883,16 +8938,16 @@ var _user$project$SpeedSkating$splitToSeconds = function (splitTime) {
 		_elm_lang$core$Regex$AtMost(1),
 		_elm_lang$core$Regex$regex('[.]'),
 		splitTime);
-	var _p4 = parts;
-	if (((_p4.ctor === '::') && (_p4._1.ctor === '::')) && (_p4._1._1.ctor === '[]')) {
-		var _p5 = A2(_user$project$Utils$resultMap, _elm_lang$core$String$toFloat, parts);
-		if (_p5.ctor === 'Err') {
-			return _elm_lang$core$Result$Err(_p5._0);
+	var _p5 = parts;
+	if (((_p5.ctor === '::') && (_p5._1.ctor === '::')) && (_p5._1._1.ctor === '[]')) {
+		var _p6 = A2(_user$project$Utils$resultMap, _elm_lang$core$String$toFloat, parts);
+		if (_p6.ctor === 'Err') {
+			return _elm_lang$core$Result$Err(_p6._0);
 		} else {
 			return _elm_lang$core$Result$Ok(
 				A2(
 					_user$project$Utils$dotProduct,
-					_p5._0,
+					_p6._0,
 					{
 						ctor: '::',
 						_0: 60.0,
@@ -8938,12 +8993,12 @@ var _user$project$SpeedSkating$calculateLapTimes = function (numberList) {
 };
 var _user$project$SpeedSkating$getLapTimes = function (model) {
 	var toSecondsResult = A2(_user$project$Utils$resultMap, _user$project$SpeedSkating$splitToSeconds, model.splitTimes);
-	var _p6 = toSecondsResult;
-	if (_p6.ctor === 'Ok') {
+	var _p7 = toSecondsResult;
+	if (_p7.ctor === 'Ok') {
 		return _elm_lang$core$Result$Ok(
-			_user$project$SpeedSkating$calculateLapTimes(_p6._0));
+			_user$project$SpeedSkating$calculateLapTimes(_p7._0));
 	} else {
-		return _elm_lang$core$Result$Err(_p6._0);
+		return _elm_lang$core$Result$Err(_p7._0);
 	}
 };
 
@@ -8971,6 +9026,74 @@ var _user$project$Main$myStyle = _elm_lang$html$Html_Attributes$style(
 			}
 		}
 	});
+var _user$project$Main$unadjustable = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: {ctor: '_Tuple2', _0: 'resize', _1: 'none'},
+		_1: {ctor: '[]'}
+	});
+var _user$project$Main$unadjustableTextarea = F2(
+	function (attributes, htmls) {
+		return A2(
+			_elm_lang$html$Html$textarea,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$class('test'),
+				_1: attributes
+			},
+			htmls);
+	});
+var _user$project$Main$createLapTimeTexts = function (model) {
+	var _p0 = function () {
+		var _p1 = model.lapTimesFloats;
+		if (_p1.ctor === '[]') {
+			return {ctor: '_Tuple3', _0: '', _1: '', _2: ''};
+		} else {
+			return A2(
+				_user$project$Utils$tupleMap3,
+				function (_p2) {
+					return A2(
+						_user$project$SpeedSkating$fixDecimalLength,
+						model.rounding,
+						function (f) {
+							return f(model.lapTimesFloats);
+						}(_p2));
+				},
+				{
+					ctor: '_Tuple3',
+					_0: _user$project$SpeedSkating$getAvgLapTime,
+					_1: A2(_user$project$Utils$maybeFuncWithDefault, _elm_lang$core$List$minimum, 0.0),
+					_2: A2(_user$project$Utils$maybeFuncWithDefault, _elm_lang$core$List$maximum, 0.0)
+				});
+		}
+	}();
+	var avg = _p0._0;
+	var best = _p0._1;
+	var worst = _p0._2;
+	var strTuple = {ctor: '_Tuple3', _0: 'snittrundetid: ', _1: 'beste rundetid: ', _2: 'dårligste rundetid: '};
+	var texts = A3(
+		_elm_lang$core$List$map2,
+		F2(
+			function (x, y) {
+				return A2(_elm_lang$core$Basics_ops['++'], x, y);
+			}),
+		_user$project$Utils$tuple3ToList(strTuple),
+		_user$project$Utils$tuple3ToList(
+			{ctor: '_Tuple3', _0: avg, _1: best, _2: worst}));
+	return A2(
+		_elm_lang$core$List$map,
+		function (x) {
+			return A2(
+				_elm_lang$html$Html$div,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text(x),
+					_1: {ctor: '[]'}
+				});
+		},
+		texts);
+};
 var _user$project$Main$distanceButtons = function () {
 	var distances = {
 		ctor: '::',
@@ -9022,8 +9145,8 @@ var _user$project$Main$view = function (model) {
 	var avgLapTime = _user$project$SpeedSkating$getAvgLapTime(model.lapTimesFloats);
 	var avgLapTimeString = _elm_lang$core$Basics$isNaN(avgLapTime) ? '' : A2(_user$project$SpeedSkating$fixDecimalLength, model.rounding, avgLapTime);
 	var lapText = function () {
-		var _p0 = model.lapTimes;
-		if (_p0.ctor === '[]') {
+		var _p3 = model.lapTimes;
+		if (_p3.ctor === '[]') {
 			return _user$project$SpeedSkating$getSplitDistances(model.distanceChosen);
 		} else {
 			return _user$project$Utils$unlines(model.lapTimes);
@@ -9039,7 +9162,11 @@ var _user$project$Main$view = function (model) {
 				ctor: '::',
 				_0: A2(
 					_elm_lang$html$Html$div,
-					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$class('body'),
+						_1: {ctor: '[]'}
+					},
 					{
 						ctor: '::',
 						_0: _elm_lang$html$Html$text(model.infoMsg),
@@ -9055,14 +9182,14 @@ var _user$project$Main$view = function (model) {
 							_0: _elm_lang$html$Html$text(
 								A2(
 									_elm_lang$core$Basics_ops['++'],
-									'Distanse valgt : ',
+									'TEST Distanse valgt : ',
 									_user$project$SpeedSkating$distanceToString(model.distanceChosen))),
 							_1: {ctor: '[]'}
 						}),
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_elm_lang$html$Html$textarea,
+							_user$project$Main$unadjustableTextarea,
 							{
 								ctor: '::',
 								_0: _elm_lang$html$Html_Attributes$cols(3),
@@ -9085,7 +9212,7 @@ var _user$project$Main$view = function (model) {
 						_1: {
 							ctor: '::',
 							_0: A2(
-								_elm_lang$html$Html$textarea,
+								_user$project$Main$unadjustableTextarea,
 								{
 									ctor: '::',
 									_0: _elm_lang$html$Html_Attributes$cols(15),
@@ -9103,7 +9230,7 @@ var _user$project$Main$view = function (model) {
 							_1: {
 								ctor: '::',
 								_0: A2(
-									_elm_lang$html$Html$textarea,
+									_user$project$Main$unadjustableTextarea,
 									{
 										ctor: '::',
 										_0: _elm_lang$html$Html_Attributes$cols(30),
@@ -9125,7 +9252,7 @@ var _user$project$Main$view = function (model) {
 								_1: {
 									ctor: '::',
 									_0: A2(
-										_elm_lang$html$Html$textarea,
+										_user$project$Main$unadjustableTextarea,
 										{
 											ctor: '::',
 											_0: _elm_lang$html$Html_Attributes$cols(30),
@@ -9144,101 +9271,95 @@ var _user$project$Main$view = function (model) {
 											}
 										},
 										{ctor: '[]'}),
-									_1: {
-										ctor: '::',
-										_0: A2(
-											_elm_lang$html$Html$div,
-											{ctor: '[]'},
-											{
-												ctor: '::',
-												_0: _elm_lang$html$Html$text(
-													A2(_elm_lang$core$Basics_ops['++'], 'snittrundetisd:', avgLapTimeString)),
-												_1: {ctor: '[]'}
-											}),
-										_1: {
-											ctor: '::',
-											_0: A2(
-												_elm_lang$html$Html$button,
-												{
-													ctor: '::',
-													_0: _elm_lang$html$Html_Events$onClick(_user$project$Models$CalculateButtonClicked),
-													_1: {ctor: '[]'}
-												},
-												{
-													ctor: '::',
-													_0: _elm_lang$html$Html$text('Regn ut'),
-													_1: {ctor: '[]'}
-												}),
-											_1: {
-												ctor: '::',
-												_0: A2(
-													_elm_lang$html$Html$button,
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html_Events$onClick(_user$project$Models$RoundingButtonClicked),
-														_1: {ctor: '[]'}
-													},
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html$text(
-															A2(
-																_elm_lang$core$Basics_ops['++'],
-																'Bytt tidsdl ',
-																_user$project$SpeedSkating$nextDecimalInfo(model.rounding))),
-														_1: {ctor: '[]'}
-													}),
-												_1: {ctor: '[]'}
-											}
-										}
-									}
+									_1: {ctor: '[]'}
 								}
 							}
 						}
 					}
 				}
 			},
-			_user$project$Main$distanceButtons));
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				_user$project$Main$createLapTimeTexts(model),
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$button,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Events$onClick(_user$project$Models$CalculateButtonClicked),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text('Regn ut'),
+								_1: {ctor: '[]'}
+							}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$button,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onClick(_user$project$Models$RoundingButtonClicked),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text(
+										A2(
+											_elm_lang$core$Basics_ops['++'],
+											'Bytt til ',
+											_user$project$SpeedSkating$nextDecimalInfo(model.rounding))),
+									_1: {ctor: '[]'}
+								}),
+							_1: {ctor: '[]'}
+						}
+					},
+					_user$project$Main$distanceButtons))));
 };
 var _user$project$Main$update = F2(
 	function (msg, model) {
 		update:
 		while (true) {
-			var _p1 = msg;
-			switch (_p1.ctor) {
+			var _p4 = msg;
+			switch (_p4.ctor) {
 				case 'Input':
-					var _p5 = _p1._0;
+					var _p8 = _p4._0;
 					var newLinesReplaced = A2(
 						_elm_lang$core$List$filter,
-						function (_p2) {
-							return !_elm_lang$core$String$isEmpty(_p2);
+						function (_p5) {
+							return !_elm_lang$core$String$isEmpty(_p5);
 						},
 						_user$project$Utils$lines(
 							A3(
 								_user$project$Utils$replaceRegexWith,
 								'[ ]',
 								'\n',
-								A3(_user$project$Utils$replaceRegexWith, '[,:]', '.', _p5))));
+								A3(_user$project$Utils$replaceRegexWith, '[,:]', '.', _p8))));
 					var errorCheckValue = A2(
 						_elm_lang$core$Result$andThen,
 						_user$project$SpeedSkating$checkValidMinSec,
 						_user$project$SpeedSkating$errorCheckSplitTimes(newLinesReplaced));
-					var _p3 = function () {
-						var _p4 = {ctor: '_Tuple2', _0: newLinesReplaced, _1: errorCheckValue};
-						_v2_0:
+					var _p6 = function () {
+						var _p7 = {ctor: '_Tuple2', _0: newLinesReplaced, _1: errorCheckValue};
+						_v3_0:
 						do {
-							if (_p4._1.ctor === 'Ok') {
-								if (_p4._0.ctor === '[]') {
-									break _v2_0;
+							if (_p7._1.ctor === 'Ok') {
+								if (_p7._0.ctor === '[]') {
+									break _v3_0;
 								} else {
 									return {ctor: '_Tuple2', _0: 'OK', _1: newLinesReplaced};
 								}
 							} else {
-								if (_p4._0.ctor === '[]') {
-									break _v2_0;
+								if (_p7._0.ctor === '[]') {
+									break _v3_0;
 								} else {
 									return {
 										ctor: '_Tuple2',
-										_0: _p4._1._0,
+										_0: _p7._1._0,
 										_1: {ctor: '[]'}
 									};
 								}
@@ -9250,21 +9371,21 @@ var _user$project$Main$update = F2(
 							_1: {ctor: '[]'}
 						};
 					}();
-					var msgLine = _p3._0;
-					var splitTimes = _p3._1;
+					var msgLine = _p6._0;
+					var splitTimes = _p6._1;
 					return _elm_lang$core$Native_Utils.update(
 						model,
-						{textContent: _p5, infoMsg: msgLine, splitTimes: splitTimes});
+						{textContent: _p8, infoMsg: msgLine, splitTimes: splitTimes});
 				case 'DistanceButtonClicked':
 					return _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							distanceChosen: _p1._0,
+							distanceChosen: _p4._0,
 							lapTimes: {ctor: '[]'}
 						});
 				case 'CalculateButtonClicked':
-					var _p6 = model.splitTimes;
-					if (_p6.ctor === '[]') {
+					var _p9 = model.splitTimes;
+					if (_p9.ctor === '[]') {
 						return _elm_lang$core$Native_Utils.update(
 							model,
 							{
@@ -9278,21 +9399,21 @@ var _user$project$Main$update = F2(
 							_elm_lang$core$Result$andThen,
 							_user$project$SpeedSkating$checkNoNegative,
 							_user$project$SpeedSkating$getLapTimes(model));
-						var _p7 = function () {
-							var _p8 = res;
-							if (_p8.ctor === 'Ok') {
-								var _p9 = _p8._0;
+						var _p10 = function () {
+							var _p11 = res;
+							if (_p11.ctor === 'Ok') {
+								var _p12 = _p11._0;
 								return {
 									ctor: '_Tuple2',
 									_0: A3(
 										_user$project$SpeedSkating$getLapTimesAsList,
 										model,
-										_p9,
+										_p12,
 										A2(
 											_elm_lang$core$Maybe$withDefault,
 											'',
 											_elm_lang$core$List$head(model.splitTimes))),
-									_1: _p9
+									_1: _p12
 								};
 							} else {
 								return {
@@ -9303,15 +9424,15 @@ var _user$project$Main$update = F2(
 								};
 							}
 						}();
-						var lapTimesString = _p7._0;
-						var lapTimesFloats = _p7._1;
-						var _p10 = res;
-						if (_p10.ctor === 'Err') {
+						var lapTimesString = _p10._0;
+						var lapTimesFloats = _p10._1;
+						var _p13 = res;
+						if (_p13.ctor === 'Err') {
 							return _elm_lang$core$Native_Utils.update(
 								model,
 								{
 									lapTimes: lapTimesString,
-									infoMsg: A2(_elm_lang$core$Basics_ops['++'], 'Feil i rundetidene - ', _p10._0)
+									infoMsg: A2(_elm_lang$core$Basics_ops['++'], 'Feil i rundetidene - ', _p13._0)
 								});
 						} else {
 							return _elm_lang$core$Native_Utils.update(
@@ -9320,10 +9441,10 @@ var _user$project$Main$update = F2(
 						}
 					}
 				default:
-					var _v6 = _user$project$Models$CalculateButtonClicked,
-						_v7 = _user$project$SpeedSkating$updateRounding(model);
-					msg = _v6;
-					model = _v7;
+					var _v7 = _user$project$Models$CalculateButtonClicked,
+						_v8 = _user$project$SpeedSkating$updateRounding(model);
+					msg = _v7;
+					model = _v8;
 					continue update;
 			}
 		}
