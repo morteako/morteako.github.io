@@ -167,7 +167,7 @@ view model =
         -- toString avgLapTime
     in
         div [] <|
-            ([ div [] [ text model.infoMsg ]
+            ([ div [ class "body" ] [ text model.infoMsg ]
              , div [] [ text <| "Distanse valgt : " ++ distanceToString model.distanceChosen ]
              , unadjustableTextarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
              , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput Input ] []
