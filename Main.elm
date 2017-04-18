@@ -120,6 +120,27 @@ distanceButtons =
             distances
 
 
+createLapTimeTexts model =
+    let
+        strTuple =
+            ( "snittrundetid: ", "beste rundetid: ", "dårligste rundetid: " )
+
+        ( avg, best, worst ) =
+            case model.lapTimesFloats of
+                [] ->
+                    ( "", "", "" )
+
+                _ ->
+                    tupleMap3
+                        (fixDecimalLength model.rounding << \f -> f model.lapTimesFloats)
+                        ( getAvgLapTime, maybeFuncWithDefault List.minimum 0.0, maybeFuncWithDefault List.maximum 0.0 )
+
+        texts =
+            List.map2 (++) (tuple3ToList strTuple) (tuple3ToList ( avg, best, worst ))
+    in
+        List.map (\x -> div [] [ text x ]) texts
+
+
 view : Model -> Html Msg
 view model =
     let
@@ -141,23 +162,34 @@ view model =
             if isNaN avgLapTime then
                 ""
             else
-                roundToDec model.rounding avgLapTime
+                fixDecimalLength model.rounding avgLapTime
 
         -- toString avgLapTime
     in
         div [] <|
-            [ div [] [ text model.infoMsg ]
-            , div [] [ text <| "Distanse valgt : " ++ distanceToString model.distanceChosen ]
-            , textarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
-            , textarea [ cols 15, rows nrOfLaps, onInput Input ] []
-            , textarea [ cols 30, rows nrOfLaps, readonly True, placeholder lapText ] []
-            , textarea [ cols 30, rows 25, readonly True, placeholder testData10k ] []
-            , div [] [ text <| "snittrundetid:" ++ avgLapTimeString ]
-            , button [ onClick CalculateButtonClicked ] [ text "Regn ut" ]
-            , button [ onClick RoundingButtonClicked ] [ text <| "Bytt til " ++ nextDecimalInfo model.rounding ]
-            ]
+            ([ div [] [ text model.infoMsg ]
+             , div [] [ text <| "Distanse valgt : " ++ distanceToString model.distanceChosen ]
+             , unadjustableTextarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
+             , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput Input ] []
+             , unadjustableTextarea [ cols 30, rows nrOfLaps, readonly True, placeholder lapText ] []
+             , unadjustableTextarea [ cols 30, rows 25, readonly True, placeholder testData10k ] []
+             ]
+                ++ createLapTimeTexts model
+                ++ [ button [ onClick CalculateButtonClicked ] [ text "Regn ut" ]
+                   , button [ onClick RoundingButtonClicked ] [ text <| "Bytt til " ++ nextDecimalInfo model.rounding ]
+                   ]
                 ++ distanceButtons
-                ++ [ div [ myStyle ] [ text testData10k ] ]
+            )
+
+
+unadjustableTextarea : List (Attribute msg) -> List (Html msg) -> Html msg
+unadjustableTextarea attributes htmls =
+    textarea (unadjustable :: attributes) htmls
+
+
+unadjustable : Attribute msg
+unadjustable =
+    style [ ( "resize", "none" ) ]
 
 
 myStyle =

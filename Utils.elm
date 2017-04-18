@@ -158,22 +158,6 @@ unlines ss =
     String.join "\n" ss
 
 
-roundToOneDec : Float -> String
-roundToOneDec number =
-    number
-        |> (*) 10
-        |> round
-        |> toFloat
-        |> (\x -> x / 10.0)
-        |> toString
-        |> (\x ->
-                if String.contains "." x then
-                    x
-                else
-                    x ++ ".0"
-           )
-
-
 type RoundingType
     = OneDecimal
     | TwoDecimal
@@ -205,15 +189,6 @@ roundToDec roundingType number =
         |> toFloat
         |> (\x -> x / (getRoundingFactor roundingType))
         |> toString
-        |> \x ->
-            if String.contains "." x then
-                x
-            else
-                x ++ "."
-
-
-
--- String.padRight (2 + getNumberOfZeroes roundingType) '0' "."
 
 
 map2Full f2 f1 xs ys =
@@ -228,6 +203,7 @@ map2Full f2 f1 xs ys =
             f2 x y :: map2Full f2 f1 xs ys
 
 
+findIndex : (a -> Bool) -> List a -> Maybe number
 findIndex pred xs =
     let
         index =
@@ -247,3 +223,17 @@ findIndex pred xs =
 average : List Float -> Float
 average nrs =
     List.sum nrs / toFloat (List.length nrs)
+
+
+tupleMap3 : (a -> b) -> ( a, a, a ) -> ( b, b, b )
+tupleMap3 f ( a, b, c ) =
+    ( f a, f b, f c )
+
+
+tuple3ToList : ( a, a, a ) -> List a
+tuple3ToList ( a, b, c ) =
+    [ a, b, c ]
+
+
+maybeFuncWithDefault f default =
+    \x -> Maybe.withDefault default (f x)

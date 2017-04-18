@@ -78,6 +78,7 @@ validMinSec time =
             time
                 |> String.split "."
                 |> List.take 2
+                |> List.map (String.padLeft 2 '0')
                 |> List.map (String.left 1)
     in
         List.any (\x -> String.contains x "6789") firstTwoChars
@@ -221,7 +222,7 @@ fixDecimalLength rounding nr =
     in
         case splitted of
             [ intNr ] ->
-                intNr ++ "." ++ String.repeat (getNumberOfZeroes rounding) "0"
+                intNr ++ "." ++ String.padRight (getNumberOfZeroes rounding) '0' ""
 
             [ secs, millis ] ->
                 secs ++ "." ++ String.padRight (getNumberOfZeroes rounding) '0' millis
