@@ -51,6 +51,7 @@ ul {
 
 .test {
   resize: none;
+  background-color: lightyellow;
 }
 
 .restart {
