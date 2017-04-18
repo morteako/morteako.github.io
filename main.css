@@ -1,0 +1,59 @@
+body {
+  font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Pacifico', cursive;
+  font-size: 30px;
+  margin: 0;
+  text-align: center;
+  color: #293c4b;
+}
+
+h1 {
+  margin: 0 auto;
+}
+
+img {
+  margin: 20px 0;
+  max-width: 200px;
+  border-radius: 999px;
+  max-height: 200px;
+}
+
+ul {
+  padding: 0;
+  margin: 0;
+}
+
+.cards {
+  position: relative;
+  display: flex;
+  flex-flow: row wrap;
+  width: 800px;
+  margin: 0 auto;
+}
+
+.matched {
+  opacity: 0.3;
+}
+
+.card {
+  list-style-type: none;
+  flex: 1;
+  flex-basis: 25%;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  justify-content: space-between;
+}
+
+.victory {
+  font-size: 72px;
+}
+
+.restart {
+  display: block;
+  margin: 0 auto;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 24px;
+}
