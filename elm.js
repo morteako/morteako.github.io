@@ -9036,11 +9036,7 @@ var _user$project$Main$unadjustableTextarea = F2(
 	function (attributes, htmls) {
 		return A2(
 			_elm_lang$html$Html$textarea,
-			{
-				ctor: '::',
-				_0: _elm_lang$html$Html_Attributes$class('test'),
-				_1: attributes
-			},
+			{ctor: '::', _0: _user$project$Main$unadjustable, _1: attributes},
 			htmls);
 	});
 var _user$project$Main$createLapTimeTexts = function (model) {
