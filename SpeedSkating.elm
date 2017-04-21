@@ -170,9 +170,17 @@ getLapTimesDifferences model lapTimes =
     let
         avgLapTime =
             getAvgLapTime lapTimes
+
+        allDifferences =
+            List.map (differenceToString model) <|
+                List.map (\x -> x - avgLapTime) lapTimes
     in
-        List.map (differenceToString model) <|
-            List.map (\x -> x - avgLapTime) lapTimes
+        case allDifferences of
+            first :: rest ->
+                "" :: rest
+
+            _ ->
+                []
 
 
 updateRounding : Model -> Model

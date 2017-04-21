@@ -18,7 +18,7 @@ type alias Model =
     , splitTimes : List String
     , lapTimes : List String
     , lapTimesFloats : List Float
-    , infoMsg : String
+    , infoMsg : InfoMsg
     , rounding : RoundingType
     }
 
@@ -28,3 +28,8 @@ type Msg
     | DistanceButtonClicked Distance
     | CalculateButtonClicked
     | RoundingButtonClicked
+
+
+type InfoMsg
+    = Instruction String
+    | ErrorMsg String

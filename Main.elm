@@ -7,6 +7,7 @@ import Html.Events exposing (onInput, onClick)
 import Utils exposing (..)
 import SpeedSkating exposing (..)
 import Test exposing (..)
+import Css exposing (..)
 
 
 model : Model
@@ -14,7 +15,7 @@ model =
     { textContent = ""
     , splitTimes = []
     , distanceChosen = D10000
-    , infoMsg = "Skriv inn rundetider"
+    , infoMsg = Instruction "Skriv inn rundetider"
     , lapTimes = []
     , lapTimesFloats = []
     , rounding = OneDecimal
@@ -38,20 +39,20 @@ update msg model =
                         |> errorCheckSplitTimes
                         |> Result.andThen checkValidMinSec
 
-                ( msgLine, splitTimes ) =
+                ( infoMsg, splitTimes ) =
                     case ( newLinesReplaced, errorCheckValue ) of
                         ( [], _ ) ->
-                            ( "Skriv inn rundetider", [] )
+                            ( Instruction "Skriv inn rundetider", [] )
 
                         ( _, Ok _ ) ->
-                            ( "OK", newLinesReplaced )
+                            ( Instruction "OK", newLinesReplaced )
 
                         ( _, Err msg ) ->
-                            ( msg, [] )
+                            ( ErrorMsg msg, [] )
             in
                 { model
                     | textContent = newContent
-                    , infoMsg = msgLine
+                    , infoMsg = infoMsg
                     , splitTimes = splitTimes
                 }
 
@@ -61,7 +62,7 @@ update msg model =
         CalculateButtonClicked ->
             case model.splitTimes of
                 [] ->
-                    { model | infoMsg = "Kan ikke regne ut : " ++ (replaceRegexWith "Kan ikke regne ut : " "" model.infoMsg) }
+                    { model | infoMsg = ErrorMsg <| "Kan ikke regne ut : " ++ replaceRegexWith "Kan ikke regne ut : " "" (getInfoMsgString model.infoMsg) }
 
                 _ ->
                     let
@@ -86,13 +87,13 @@ update msg model =
                     in
                         case res of
                             Err e ->
-                                { model | lapTimes = lapTimesString, infoMsg = "Feil i rundetidene - " ++ e }
+                                { model | lapTimes = lapTimesString, infoMsg = ErrorMsg <| "Feil i rundetidene - " ++ e }
 
                             Ok v ->
                                 { model
                                     | lapTimes = lapTimesString
                                     , lapTimesFloats = lapTimesFloats
-                                    , infoMsg = "REGNET UT"
+                                    , infoMsg = Instruction "REGNET UT"
                                 }
 
         RoundingButtonClicked ->
@@ -115,11 +116,12 @@ distanceButtons =
     in
         List.map
             (\dist ->
-                button [ onClick <| DistanceButtonClicked dist ] [ text <| distanceToString dist ]
+                button [ styleDistanceButton, onClick <| DistanceButtonClicked dist ] [ text <| distanceToString dist ]
             )
             distances
 
 
+createLapTimeTexts : Model -> List (Html msg)
 createLapTimeTexts model =
     let
         strTuple =
@@ -130,9 +132,13 @@ createLapTimeTexts model =
                 [] ->
                     ( "", "", "" )
 
-                _ ->
+                [ first ] ->
+                    ( "", "", "" )
+
+                --Skip first laptime because of start time ++
+                first :: rest ->
                     tupleMap3
-                        (fixDecimalLength model.rounding << \f -> f model.lapTimesFloats)
+                        (fixDecimalLength model.rounding << \f -> f rest)
                         ( getAvgLapTime, maybeFuncWithDefault List.minimum 0.0, maybeFuncWithDefault List.maximum 0.0 )
 
         texts =
@@ -164,46 +170,49 @@ view model =
             else
                 fixDecimalLength model.rounding avgLapTime
 
-        -- toString avgLapTime
+        inputAreaValue =
+            model.textContent
+                |> lines
+                |> List.take (getNrOfLaps model.distanceChosen)
+                |> unlines
     in
         div [] <|
-            ([ div [ class "body" ] [ text model.infoMsg ]
-             , div [] [ text <| "TEST Distanse valgt : " ++ distanceToString model.distanceChosen ]
+            ([ div [ getInfoMsgCss model.infoMsg ] [ text <| getInfoMsgString model.infoMsg ]
+             , div [] [ text <| "Distanse valgt : " ++ distanceToString model.distanceChosen ]
              , unadjustableTextarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
-             , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput Input ] []
-             , unadjustableTextarea [ cols 30, rows nrOfLaps, readonly True, placeholder lapText ] []
-             , unadjustableTextarea [ cols 30, rows 25, readonly True, placeholder testData10k ] []
+             , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput Input, value inputAreaValue ] []
+             , unadjustableTextarea [ cols 30, rows nrOfLaps, readonly True, value lapText ] []
+             , unadjustableTextarea [ cols 30, rows 25, readonly True, value testData10k ] []
              ]
                 ++ createLapTimeTexts model
-                ++ [ button [ onClick CalculateButtonClicked ] [ text "Regn ut" ]
-                   , button [ onClick RoundingButtonClicked ] [ text <| "Bytt til " ++ nextDecimalInfo model.rounding ]
+                ++ [ button [ styleCalculateButton, onClick CalculateButtonClicked ] [ text "Regn ut" ]
+                   , button [ styleCalculateButton, onClick RoundingButtonClicked ] [ text <| "Bytt til " ++ nextDecimalInfo model.rounding ]
                    ]
                 ++ distanceButtons
             )
 
 
+getInfoMsgString infoMsg =
+    case infoMsg of
+        Instruction x ->
+            x
+
+        ErrorMsg x ->
+            x
+
+
+getInfoMsgCss infoMsg =
+    case infoMsg of
+        Instruction _ ->
+            instructionMsgStyle
+
+        ErrorMsg _ ->
+            errorMsgStyle
+
+
 unadjustableTextarea : List (Attribute msg) -> List (Html msg) -> Html msg
 unadjustableTextarea attributes htmls =
-    textarea (unadjustable :: attributes) htmls
-
-
-
--- textarea (unadjustable :: attributes) htmls
-
-
-unadjustable : Attribute msg
-unadjustable =
-    style [ ( "resize", "none" ) ]
-
-
-myStyle =
-    style
-        [ ( "width", "100%" )
-        , ( "height", "40px" )
-        , ( "padding", "10px 0" )
-        , ( "font-size", "0.8em" )
-        , ( "text-align", "bottom" )
-        ]
+    textarea (Css.unadjustable :: attributes) htmls
 
 
 main : Program Never Model Msg
