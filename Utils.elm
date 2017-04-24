@@ -1,6 +1,7 @@
 module Utils exposing (..)
 
 import Regex
+import Models exposing (..)
 
 
 replaceChar : Char -> Char -> String -> String
@@ -158,13 +159,11 @@ unlines ss =
     String.join "\n" ss
 
 
-type RoundingType
-    = OneDecimal
-    | TwoDecimal
-
-
 getRoundingFactor rounding =
     case rounding of
+        ZeroDecimal ->
+            1.0
+
         OneDecimal ->
             10.0
 
@@ -174,6 +173,9 @@ getRoundingFactor rounding =
 
 getNumberOfZeroes rounding =
     case rounding of
+        ZeroDecimal ->
+            0
+
         OneDecimal ->
             1
 
@@ -181,26 +183,36 @@ getNumberOfZeroes rounding =
             2
 
 
-roundToDec : RoundingType -> Float -> String
-roundToDec roundingType number =
+roundToDec : DecimalLimiter -> RoundingType -> Float -> String
+roundToDec lim roundingType number =
     number
         |> (*) (getRoundingFactor roundingType)
-        |> round
+        |> (case lim of
+                Round ->
+                    round
+
+                _ ->
+                    floor
+           )
         |> toFloat
         |> (\x -> x / (getRoundingFactor roundingType))
         |> toString
 
 
-map2Full f2 f1 xs ys =
+map2Full f2 fx fy xs ys =
     case ( xs, ys ) of
         ( [], _ ) ->
-            List.map f1 ys
+            List.map fy ys
 
         ( _, [] ) ->
-            List.map f1 xs
+            List.map fx xs
 
         ( x :: xs, y :: ys ) ->
-            f2 x y :: map2Full f2 f1 xs ys
+            f2 x y :: map2Full f2 fx fy xs ys
+
+
+map2FullId f2 xs ys =
+    map2Full f2 identity identity xs ys
 
 
 findIndex : (a -> Bool) -> List a -> Maybe number
@@ -225,6 +237,16 @@ average nrs =
     List.sum nrs / toFloat (List.length nrs)
 
 
+safeAverage : List Float -> Maybe Float
+safeAverage nrs =
+    case nrs of
+        [] ->
+            Nothing
+
+        _ ->
+            Just <| (List.sum nrs) / toFloat (List.length nrs)
+
+
 tupleMap3 : (a -> b) -> ( a, a, a ) -> ( b, b, b )
 tupleMap3 f ( a, b, c ) =
     ( f a, f b, f c )
@@ -237,3 +259,7 @@ tuple3ToList ( a, b, c ) =
 
 maybeFuncWithDefault f default =
     \x -> Maybe.withDefault default (f x)
+
+
+listPadRight nr val xs =
+    xs ++ List.repeat (nr - List.length xs) val

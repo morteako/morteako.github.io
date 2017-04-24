@@ -44,7 +44,7 @@ splitToSeconds splitTime =
                 Result.Err <| "Line : " ++ splitTime ++ " | Could not split at ."
 
 
-getLapTimes : Model -> Result String (List Float)
+getLapTimes : Model -> Result InfoMsg (List Float)
 getLapTimes model =
     let
         toSecondsResult =
@@ -55,18 +55,18 @@ getLapTimes model =
                 Ok <| calculateLapTimes v
 
             Err e ->
-                Err e
+                Err (ErrorMsg e)
 
 
-checkTimesGeneral : (a -> Bool) -> String -> List a -> Result String (List a)
-checkTimesGeneral pred errorMsg times =
+checkTimesGeneral : (a -> Bool) -> (String -> InfoMsg) -> String -> List a -> Result InfoMsg (List a)
+checkTimesGeneral pred infoCreator errorMsg times =
     let
         res =
             findIndex pred times
     in
         case res of
             Just ind ->
-                Err <| errorMsg ++ toString (ind + 1)
+                Err <| infoCreator <| errorMsg ++ toString (ind + 1)
 
             Nothing ->
                 Ok times
@@ -84,13 +84,13 @@ validMinSec time =
         List.any (\x -> String.contains x "6789") firstTwoChars
 
 
-checkValidMinSec : List String -> Result String (List String)
+checkValidMinSec : List String -> Result InfoMsg (List String)
 checkValidMinSec splitTimes =
-    checkTimesGeneral validMinSec "Ugyldig tid. Minutter eller sekunder er over 60. Linje : " splitTimes
+    checkTimesGeneral validMinSec ErrorMsg "Ugyldig tid. Minutter eller sekunder er over 60. Linje : " splitTimes
 
 
 checkNoNegative lapTimes =
-    checkTimesGeneral ((>) 0) "Negativ rundetid for runde " lapTimes
+    checkTimesGeneral ((>) 0) WarningMsg "Negativ rundetid for runde " lapTimes
 
 
 
@@ -98,10 +98,11 @@ checkNoNegative lapTimes =
 -- Just number : Error at line <number>
 
 
-errorCheckSplitTimes : List String -> Result String (List String)
+errorCheckSplitTimes : List String -> Result InfoMsg (List String)
 errorCheckSplitTimes splitTimes =
     checkTimesGeneral
         (not << Regex.contains (Regex.regex "^\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}$"))
+        ErrorMsg
         "feil input! Ikke på gyldig form : D.D.D , for linje : "
         splitTimes
 
@@ -134,27 +135,131 @@ getSplitDistances dist =
         unlines <| List.reverse res
 
 
-getLapTimesAsList : Model -> List Float -> String -> List String
-getLapTimesAsList model lapTimesFloats firstSplitTime =
+getLapSpeeds : Model -> List String
+getLapSpeeds model =
+    model.lapTimesFloats
+        |> List.indexedMap
+            (\index x ->
+                (if index > 0 then
+                    400
+                 else
+                    firstRoundLength model.distanceChosen
+                )
+                    / 1000
+                    / (x / 3600.0)
+            )
+        |> List.map (fixDecimalLength model.decimalLimiter model.rounding)
+        |> List.map (\x -> x ++ " km/t")
+
+
+firstRoundLength : Distance -> number
+firstRoundLength dist =
+    case dist of
+        D500 ->
+            100
+
+        D1000 ->
+            200
+
+        D1500 ->
+            300
+
+        D3000 ->
+            200
+
+        D5000 ->
+            200
+
+        D10000 ->
+            400
+
+
+formatInfoToChar : LapInfo -> Char
+formatInfoToChar info =
+    case info of
+        LapDistance ->
+            'd'
+
+        LapDifference ->
+            'D'
+
+        LapTime ->
+            'T'
+
+        LapSpeed ->
+            'H'
+
+        LapSplitTime ->
+            'P'
+
+
+charToLapInfo x =
+    case x of
+        'D' ->
+            Just LapDifference
+
+        'T' ->
+            Just LapTime
+
+        'H' ->
+            Just LapSpeed
+
+        'd' ->
+            Just LapDistance
+
+        'P' ->
+            Just LapSplitTime
+
+        _ ->
+            Nothing
+
+
+getLapTimesAsList : Model -> String -> List String
+getLapTimesAsList model firstSplitTime =
     let
+        lapInfoFunc : LapInfo -> List String
+        lapInfoFunc lapInfo =
+            case lapInfo of
+                LapDistance ->
+                    lines <| getSplitDistances model.distanceChosen
+
+                LapDifference ->
+                    (getLapTimesDifferences model)
+
+                LapTime ->
+                    List.map (fixDecimalLength model.decimalLimiter model.rounding) model.lapTimesFloats
+
+                LapSpeed ->
+                    getLapSpeeds model
+
+                LapSplitTime ->
+                    model.splitTimes
+
         splitDistances =
             lines <| getSplitDistances model.distanceChosen
 
         lapTimesStrings =
-            List.map (fixDecimalLength model.rounding) lapTimesFloats
+            List.map (fixDecimalLength model.decimalLimiter model.rounding) model.lapTimesFloats
 
-        lapTimesAndDifferences =
-            map2Full
-                (\x y -> x ++ " : " ++ y)
-                identity
-                lapTimesStrings
-                (getLapTimesDifferences model lapTimesFloats)
+        concatFullWithComma =
+            map2FullId (\x y -> x ++ String.fromList [ ' ', model.delimiter, ' ' ] ++ y)
+
+        lapInfoLists =
+            List.map lapInfoFunc
+                (List.filterMap charToLapInfo model.outputFormatString)
+                |> \prev -> List.map (listPadRight (getNrOfLaps model.distanceChosen) "") prev
+
+        pad ss =
+            let
+                -- default doesn't really matter
+                maxStrLength =
+                    Maybe.withDefault 1 <| List.maximum <| List.map String.length ss
+            in
+                List.map (String.padRight maxStrLength ' ') ss
     in
-        map2Full
-            (\x y -> String.padRight 6 ' ' x ++ " : " ++ y)
-            identity
-            splitDistances
-            lapTimesAndDifferences
+        lapInfoLists
+            |> List.map pad
+            |> List.foldr concatFullWithComma []
 
 
 getAvgLapTime : List Float -> Float
@@ -165,15 +270,15 @@ getAvgLapTime lapTimesFloats =
         |> average
 
 
-getLapTimesDifferences : Model -> List Float -> List String
-getLapTimesDifferences model lapTimes =
+getLapTimesDifferences : Model -> List String
+getLapTimesDifferences model =
     let
         avgLapTime =
-            getAvgLapTime lapTimes
+            getAvgLapTime model.lapTimesFloats
 
         allDifferences =
             List.map (differenceToString model) <|
-                List.map (\x -> x - avgLapTime) lapTimes
+                List.map (\x -> x - avgLapTime) model.lapTimesFloats
     in
         case allDifferences of
             first :: rest ->
@@ -191,18 +296,21 @@ updateRounding model =
 nextRounding : RoundingType -> RoundingType
 nextRounding rounding =
     case rounding of
+        ZeroDecimal ->
+            OneDecimal
+
         OneDecimal ->
             TwoDecimal
 
         TwoDecimal ->
-            OneDecimal
+            ZeroDecimal
 
 
 differenceToString : Model -> Float -> String
 differenceToString model x =
     let
         number =
-            fixDecimalLength model.rounding x
+            fixDecimalLength model.decimalLimiter model.rounding x
     in
         if String.startsWith "-" number then
             number
@@ -212,28 +320,39 @@ differenceToString model x =
 
 nextDecimalInfo dec =
     case dec of
-        TwoDecimal ->
+        ZeroDecimal ->
             "en desimal"
 
         OneDecimal ->
             "to desimaler"
 
+        TwoDecimal ->
+            "null desimaler"
 
-fixDecimalLength : RoundingType -> Float -> String
-fixDecimalLength rounding nr =
+
+fixDecimalLength : DecimalLimiter -> RoundingType -> Float -> String
+fixDecimalLength lim rounding nr =
     let
         roundedNr =
-            roundToDec rounding nr
+            roundToDec lim rounding nr
 
         splitted =
             String.split "." roundedNr
-    in
-        case splitted of
-            [ intNr ] ->
-                intNr ++ "." ++ String.padRight (getNumberOfZeroes rounding) '0' ""
 
-            [ secs, millis ] ->
-                secs ++ "." ++ String.padRight (getNumberOfZeroes rounding) '0' millis
+        val =
+            case splitted of
+                [ intNr ] ->
+                    intNr ++ "." ++ String.padRight (getNumberOfZeroes rounding) '0' ""
+
+                [ secs, millis ] ->
+                    secs ++ "." ++ String.padRight (getNumberOfZeroes rounding) '0' millis
+
+                _ ->
+                    String.concat splitted
+    in
+        case rounding of
+            ZeroDecimal ->
+                roundedNr
 
             _ ->
-                String.concat splitted
+                val

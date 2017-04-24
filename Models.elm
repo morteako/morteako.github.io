@@ -1,6 +1,6 @@
 module Models exposing (..)
 
-import Utils exposing (RoundingType)
+import Html exposing (Html)
 
 
 type Distance
@@ -20,16 +20,52 @@ type alias Model =
     , lapTimesFloats : List Float
     , infoMsg : InfoMsg
     , rounding : RoundingType
+    , distanceButtons : List (Html Msg)
+    , outputFormatString : List Char
+    , delimiter : Char
+    , decimalLimiter : DecimalLimiter
     }
 
 
 type Msg
-    = Input String
+    = AreaInput String
+    | FormatInput String
     | DistanceButtonClicked Distance
     | CalculateButtonClicked
     | RoundingButtonClicked
+    | DecimalLimiterClicked
+
+
+type DecimalLimiter
+    = Round
+    | Truncate
 
 
 type InfoMsg
     = Instruction String
     | ErrorMsg String
+    | WarningMsg String
+
+
+type alias DataModel =
+    {}
+
+
+type Status
+    = Blank
+    | Ready (List Float)
+    | Calculated (List Float) InfoMsg
+
+
+type LapInfo
+    = LapDistance
+    | LapDifference
+    | LapTime
+    | LapSpeed
+    | LapSplitTime
+
+
+type RoundingType
+    = ZeroDecimal
+    | OneDecimal
+    | TwoDecimal
