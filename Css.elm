@@ -29,10 +29,6 @@ col =
     "#00FF80"
 
 
-centered =
-    ("")
-
-
 myStyle =
     style
         [ ( "width", "100%" )
@@ -126,6 +122,7 @@ styleDecimalButton =
         , ( "font-size", "16px" )
         , ( "border-radius", "8px" )
         , ( "width", "240px" )
+        , ( "margin-bottom", "10px" )
         ]
 
 
@@ -140,4 +137,17 @@ styleTabSize =
     style
         [ ( "-moz-tab-size", "4" )
         , ( "tab-size", "4" )
+        ]
+
+
+styleNoOutline =
+    style [ ( "outline", "none" ), ( "border", "none" ) ]
+
+
+centered =
+    style
+        [--[ ( "position", "absolute" )
+         --, ( "top", "0px" )
+         --, ( "left", "33%" )
+         -- , ( "margin-left", "-500px" )
         ]

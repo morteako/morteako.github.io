@@ -10,14 +10,9 @@ import Test exposing (..)
 import Css exposing (..)
 
 
-defaultOutputFormat : List Char
-defaultOutputFormat =
-    List.map formatInfoToChar [ LapDistance, LapTime, LapDifference, LapSpeed ]
-
-
 model : Model
 model =
-    { textContent = ""
+    { textContent = testData10k
     , splitTimes = []
     , distanceChosen = D10000
     , infoMsg = Instruction "Skriv inn rundetider"
@@ -36,8 +31,8 @@ updateInput model newContent =
     let
         newLinesReplaced =
             newContent
-                |> replaceRegexWith "[,:;]" "."
-                |> replaceRegexWith "[ ]" "\n"
+                |> replaceRegexWith "[,:;-]" "."
+                -- |> replaceRegexWith "[ ]" "\n"
                 |> lines
                 |> List.map String.trim
                 |> List.filter (not << String.isEmpty)
@@ -118,20 +113,6 @@ updateCalculate model =
                             , lapTimesFloats = floatList
                             , infoMsg = errorMsg
                         }
-
-
-getOutputFormat : List Char -> List LapInfo
-getOutputFormat outputStr =
-    let
-        res =
-            List.filterMap charToLapInfo outputStr
-    in
-        case res of
-            [] ->
-                List.filterMap charToLapInfo defaultOutputFormat
-
-            _ ->
-                res
 
 
 update : Msg -> Model -> Model
@@ -224,7 +205,7 @@ createLapTimeTexts : Model -> List (Html msg)
 createLapTimeTexts model =
     let
         strings =
-            [ "Snittrundetid_____:  ", "Beste rundetid____: ", "Dårligste rundetid: " ]
+            [ "Snitt  : ", "Laveste: ", "Høyeste: " ]
 
         ( avg, best, worst ) =
             case model.lapTimesFloats of
@@ -243,7 +224,7 @@ createLapTimeTexts model =
         texts =
             List.map2 (++) strings [ avg, best, worst ]
     in
-        List.map (\x -> div [] [ text x ]) texts
+        [ textAsTextarea [ rows 3 ] <| unlines texts ]
 
 
 view : Model -> Html Msg
@@ -278,7 +259,7 @@ view model =
         nrOfCols =
             Basics.max 40 <| Maybe.withDefault 40 <| List.maximum <| List.map String.length <| lines lapText
     in
-        div [] <|
+        div [ centered ] <|
             ([]
                 -- ++ [ br [] [] ]
                 -- ++ [ input [ maxlength 1, onInput FormatInput ] [] ]
@@ -286,24 +267,27 @@ view model =
                 ++ model.distanceButtons
                 ++ [ br [] [] ]
                 ++ createCalculateButtons model
-                ++ createLapTimeTexts model
                 ++ [ br [] []
                    , unadjustableTextarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
                    , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput AreaInput, value inputAreaValue, placeholder "Tider her...." ] []
                    , unadjustableTextarea [ cols nrOfCols, rows nrOfLaps, readonly True, value lapText, styleTabSize ] []
-                   , unadjustableTextarea [ cols 15, rows 25, readonly True, value testData10k ] []
+
+                   --    , unadjustableTextarea [ cols 15, rows 25, readonly True, value testData10k ] []
+                   , br [] []
                    ]
+                ++ createLapTimeTexts model
                 ++ [ br [] []
                    , text "Velg formatering : "
                    , input [ style [ ( "width", "90px" ) ], onInput FormatInput, value <| String.fromList model.outputFormatString ] []
                    , createFormatInfo model
                    , br [] []
                    , br [] []
-                   , unadjustableTextarea [ style [ ( "outline", "none" ), ( "border", "none" ) ], cols 81, rows <| 1 + List.length formatInfoText, readonly True, value <| String.join "\n\t" formatInfoText ] []
+                   , textAsTextarea [ cols 81, rows <| 1 + List.length formatInfoText ] <| String.join "\n\t" formatInfoText
                    ]
             )
 
 
+formatInfoText : List String
 formatInfoText =
     [ "Velg formatering. Mulige valg:"
     , "d : distanse      - antall passerte meter for hver passering"
@@ -314,6 +298,7 @@ formatInfoText =
     ]
 
 
+createFormatInfo : Model -> Html msg
 createFormatInfo model =
     let
         res =
@@ -339,6 +324,7 @@ createFormatInfo model =
         text infoTxt
 
 
+createCalculateButtons : Model -> List (Html Msg)
 createCalculateButtons model =
     let
         extraAttribues =
@@ -356,6 +342,7 @@ createCalculateButtons model =
         ]
 
 
+nextDecimalLimiterInfo : DecimalLimiter -> String
 nextDecimalLimiterInfo lim =
     case lim of
         Round ->
@@ -388,6 +375,10 @@ getInfoMsgCss infoMsg =
 
         WarningMsg _ ->
             warningMsgStyle
+
+
+textAsTextarea attributes str =
+    unadjustableTextarea ([ Css.styleNoOutline, readonly True, value str ] ++ attributes) []
 
 
 unadjustableTextarea : List (Attribute msg) -> List (Html msg) -> Html msg

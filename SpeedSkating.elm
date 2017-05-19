@@ -5,6 +5,11 @@ import Regex exposing (..)
 import Utils exposing (..)
 
 
+defaultOutputFormat : List Char
+defaultOutputFormat =
+    List.map formatInfoToChar [ LapDistance, LapTime, LapDifference, LapSpeed ]
+
+
 calculateDiffs : List ( number, number ) -> List number
 calculateDiffs secs =
     List.map (uncurryFlip (-)) secs
@@ -103,7 +108,7 @@ errorCheckSplitTimes splitTimes =
     checkTimesGeneral
         (not << Regex.contains (Regex.regex "^\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}$"))
         ErrorMsg
-        "feil input! Ikke på gyldig form : D.D.D , for linje : "
+        "feil input! Ikke på gyldig form : mm.ss.hh , for linje : "
         splitTimes
 
 
@@ -214,6 +219,20 @@ charToLapInfo x =
             Nothing
 
 
+getOutputFormat : List Char -> List LapInfo
+getOutputFormat outputStr =
+    let
+        res =
+            List.filterMap charToLapInfo outputStr
+    in
+        case res of
+            [] ->
+                List.filterMap charToLapInfo defaultOutputFormat
+
+            _ ->
+                res
+
+
 getLapTimesAsList : Model -> String -> List String
 getLapTimesAsList model firstSplitTime =
     let
@@ -246,7 +265,7 @@ getLapTimesAsList model firstSplitTime =
 
         lapInfoLists =
             List.map lapInfoFunc
-                (List.filterMap charToLapInfo model.outputFormatString)
+                (getOutputFormat model.outputFormatString)
                 |> \prev -> List.map (listPadRight (getNrOfLaps model.distanceChosen) "") prev
 
         pad ss =
