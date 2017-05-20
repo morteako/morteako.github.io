@@ -34,6 +34,7 @@ type Msg
     | CalculateButtonClicked
     | RoundingButtonClicked
     | DecimalLimiterClicked
+    | TestDataButtonClicked String
 
 
 type DecimalLimiter

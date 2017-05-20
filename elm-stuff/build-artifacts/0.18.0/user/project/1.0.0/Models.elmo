@@ -1,0 +1,72 @@
+var _user$project$Models$Model = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return function (k) {
+											return {textContent: a, distanceChosen: b, splitTimes: c, lapTimes: d, lapTimesFloats: e, infoMsg: f, rounding: g, distanceButtons: h, outputFormatString: i, delimiter: j, decimalLimiter: k};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var _user$project$Models$DataModel = {};
+var _user$project$Models$D10000 = {ctor: 'D10000'};
+var _user$project$Models$D5000 = {ctor: 'D5000'};
+var _user$project$Models$D3000 = {ctor: 'D3000'};
+var _user$project$Models$D1500 = {ctor: 'D1500'};
+var _user$project$Models$D1000 = {ctor: 'D1000'};
+var _user$project$Models$D500 = {ctor: 'D500'};
+var _user$project$Models$TestDataButtonClicked = function (a) {
+	return {ctor: 'TestDataButtonClicked', _0: a};
+};
+var _user$project$Models$DecimalLimiterClicked = {ctor: 'DecimalLimiterClicked'};
+var _user$project$Models$RoundingButtonClicked = {ctor: 'RoundingButtonClicked'};
+var _user$project$Models$CalculateButtonClicked = {ctor: 'CalculateButtonClicked'};
+var _user$project$Models$DistanceButtonClicked = function (a) {
+	return {ctor: 'DistanceButtonClicked', _0: a};
+};
+var _user$project$Models$FormatInput = function (a) {
+	return {ctor: 'FormatInput', _0: a};
+};
+var _user$project$Models$AreaInput = function (a) {
+	return {ctor: 'AreaInput', _0: a};
+};
+var _user$project$Models$Truncate = {ctor: 'Truncate'};
+var _user$project$Models$Round = {ctor: 'Round'};
+var _user$project$Models$WarningMsg = function (a) {
+	return {ctor: 'WarningMsg', _0: a};
+};
+var _user$project$Models$ErrorMsg = function (a) {
+	return {ctor: 'ErrorMsg', _0: a};
+};
+var _user$project$Models$Instruction = function (a) {
+	return {ctor: 'Instruction', _0: a};
+};
+var _user$project$Models$Calculated = F2(
+	function (a, b) {
+		return {ctor: 'Calculated', _0: a, _1: b};
+	});
+var _user$project$Models$Ready = function (a) {
+	return {ctor: 'Ready', _0: a};
+};
+var _user$project$Models$Blank = {ctor: 'Blank'};
+var _user$project$Models$LapSplitTime = {ctor: 'LapSplitTime'};
+var _user$project$Models$LapSpeed = {ctor: 'LapSpeed'};
+var _user$project$Models$LapTime = {ctor: 'LapTime'};
+var _user$project$Models$LapDifference = {ctor: 'LapDifference'};
+var _user$project$Models$LapDistance = {ctor: 'LapDistance'};
+var _user$project$Models$TwoDecimal = {ctor: 'TwoDecimal'};
+var _user$project$Models$OneDecimal = {ctor: 'OneDecimal'};
+var _user$project$Models$ZeroDecimal = {ctor: 'ZeroDecimal'};

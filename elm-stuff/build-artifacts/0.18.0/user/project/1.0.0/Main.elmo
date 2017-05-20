@@ -1,0 +1,849 @@
+var _user$project$Main$unadjustableTextarea = F2(
+	function (attributes, htmls) {
+		return A2(
+			_elm_lang$html$Html$textarea,
+			{ctor: '::', _0: _user$project$Css$unadjustable, _1: attributes},
+			htmls);
+	});
+var _user$project$Main$textAsTextarea = F2(
+	function (attributes, str) {
+		return A2(
+			_user$project$Main$unadjustableTextarea,
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: _user$project$Css$styleNoOutline,
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$readonly(true),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$value(str),
+							_1: {ctor: '[]'}
+						}
+					}
+				},
+				attributes),
+			{ctor: '[]'});
+	});
+var _user$project$Main$getInfoMsgCss = function (infoMsg) {
+	var _p0 = infoMsg;
+	switch (_p0.ctor) {
+		case 'Instruction':
+			return _user$project$Css$instructionMsgStyle;
+		case 'ErrorMsg':
+			return _user$project$Css$errorMsgStyle;
+		default:
+			return _user$project$Css$warningMsgStyle;
+	}
+};
+var _user$project$Main$getInfoMsgString = function (infoMsg) {
+	var _p1 = infoMsg;
+	switch (_p1.ctor) {
+		case 'Instruction':
+			return _p1._0;
+		case 'ErrorMsg':
+			return _p1._0;
+		default:
+			return A2(_elm_lang$core$Basics_ops['++'], 'Advarsel: ', _p1._0);
+	}
+};
+var _user$project$Main$nextDecimalLimiterInfo = function (lim) {
+	var _p2 = lim;
+	if (_p2.ctor === 'Round') {
+		return 'trunkering';
+	} else {
+		return 'avrunding';
+	}
+};
+var _user$project$Main$createCalculateButtons = function (model) {
+	var extraAttribues = function () {
+		var _p3 = model.splitTimes;
+		if (_p3.ctor === '[]') {
+			return {
+				ctor: '::',
+				_0: _user$project$Css$disabled,
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$disabled(true),
+					_1: {ctor: '[]'}
+				}
+			};
+		} else {
+			return {ctor: '[]'};
+		}
+	}();
+	return {
+		ctor: '::',
+		_0: A2(
+			_elm_lang$html$Html$button,
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				extraAttribues,
+				{
+					ctor: '::',
+					_0: _user$project$Css$styleCalculateButton,
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html_Events$onClick(_user$project$Models$CalculateButtonClicked),
+						_1: {ctor: '[]'}
+					}
+				}),
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text(
+					_user$project$Main$getInfoMsgString(model.infoMsg)),
+				_1: {ctor: '[]'}
+			}),
+		_1: {
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$br,
+				{ctor: '[]'},
+				{ctor: '[]'}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$button,
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						extraAttribues,
+						{
+							ctor: '::',
+							_0: _user$project$Css$styleDecimalButton,
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html_Events$onClick(_user$project$Models$RoundingButtonClicked),
+								_1: {ctor: '[]'}
+							}
+						}),
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text(
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								'Bytt til ',
+								_user$project$SpeedSkating$nextDecimalInfo(model.rounding))),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$button,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							extraAttribues,
+							{
+								ctor: '::',
+								_0: _user$project$Css$styleDecimalButton,
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onClick(_user$project$Models$DecimalLimiterClicked),
+									_1: {ctor: '[]'}
+								}
+							}),
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text(
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									'Bytt til ',
+									_user$project$Main$nextDecimalLimiterInfo(model.decimalLimiter))),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}
+			}
+		}
+	};
+};
+var _user$project$Main$testDataButtons = {
+	ctor: '::',
+	_0: A2(
+		_elm_lang$html$Html$button,
+		{
+			ctor: '::',
+			_0: _user$project$Css$styleDistanceButton,
+			_1: {
+				ctor: '::',
+				_0: _elm_lang$html$Html_Events$onClick(
+					_user$project$Models$TestDataButtonClicked(_user$project$Test$testData10k)),
+				_1: {ctor: '[]'}
+			}
+		},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text('Testdata : Morten - 10k'),
+			_1: {ctor: '[]'}
+		}),
+	_1: {
+		ctor: '::',
+		_0: A2(
+			_elm_lang$html$Html$button,
+			{
+				ctor: '::',
+				_0: _user$project$Css$styleDistanceButton,
+				_1: {
+					ctor: '::',
+					_0: _elm_lang$html$Html_Events$onClick(
+						_user$project$Models$TestDataButtonClicked(_user$project$Test$testDataWorldRecord10k)),
+					_1: {ctor: '[]'}
+				}
+			},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text('Testdata : Bloomen - 10k'),
+				_1: {ctor: '[]'}
+			}),
+		_1: {ctor: '[]'}
+	}
+};
+var _user$project$Main$createFormatInfo = function (model) {
+	var res = A2(
+		_elm_lang$core$List$filterMap,
+		function (x) {
+			var _p4 = _user$project$SpeedSkating$charToLapInfo(x);
+			if (_p4.ctor === 'Nothing') {
+				return _elm_lang$core$Maybe$Just(x);
+			} else {
+				return _elm_lang$core$Maybe$Nothing;
+			}
+		},
+		model.outputFormatString);
+	var infoTxt = function () {
+		var _p5 = res;
+		if (_p5.ctor === '[]') {
+			return '';
+		} else {
+			return A2(
+				_elm_lang$core$Basics_ops['++'],
+				'Ugyldig symbol : ',
+				_elm_lang$core$String$fromChar(_p5._0));
+		}
+	}();
+	return _elm_lang$html$Html$text(infoTxt);
+};
+var _user$project$Main$formatInfoText = {
+	ctor: '::',
+	_0: 'Velg formatering. Mulige valg:',
+	_1: {
+		ctor: '::',
+		_0: 'd : distanse      - antall passerte meter for hver passering',
+		_1: {
+			ctor: '::',
+			_0: 'T : rundeTid      - rundetid for runden',
+			_1: {
+				ctor: '::',
+				_0: 'D : Differanse    - mellom snittrundetiden og hver rundetid',
+				_1: {
+					ctor: '::',
+					_0: 'H : Hastighet     - hastighet for runden i km/t',
+					_1: {
+						ctor: '::',
+						_0: 'P : Passeringstid - passeringstid for runden (samme som input)\nStandard er dTDH, som også vil bli brukt hvis det er ugyldig input',
+						_1: {ctor: '[]'}
+					}
+				}
+			}
+		}
+	}
+};
+var _user$project$Main$createLapTimeTexts = function (model) {
+	var _p6 = function () {
+		var _p7 = model.lapTimesFloats;
+		if (_p7.ctor === '[]') {
+			return {ctor: '_Tuple3', _0: '', _1: '', _2: ''};
+		} else {
+			if (_p7._1.ctor === '[]') {
+				return {ctor: '_Tuple3', _0: '', _1: '', _2: ''};
+			} else {
+				return A2(
+					_user$project$Utils$tupleMap3,
+					function (_p8) {
+						return A3(
+							_user$project$SpeedSkating$fixDecimalLength,
+							model.decimalLimiter,
+							model.rounding,
+							function (f) {
+								return f(_p7._1);
+							}(_p8));
+					},
+					{
+						ctor: '_Tuple3',
+						_0: _user$project$Utils$average,
+						_1: A2(_user$project$Utils$maybeFuncWithDefault, _elm_lang$core$List$minimum, 0.0),
+						_2: A2(_user$project$Utils$maybeFuncWithDefault, _elm_lang$core$List$maximum, 0.0)
+					});
+			}
+		}
+	}();
+	var avg = _p6._0;
+	var best = _p6._1;
+	var worst = _p6._2;
+	var strings = {
+		ctor: '::',
+		_0: 'Snitt  : ',
+		_1: {
+			ctor: '::',
+			_0: 'Laveste: ',
+			_1: {
+				ctor: '::',
+				_0: 'Høyeste: ',
+				_1: {ctor: '[]'}
+			}
+		}
+	};
+	var texts = A3(
+		_elm_lang$core$List$map2,
+		F2(
+			function (x, y) {
+				return A2(_elm_lang$core$Basics_ops['++'], x, y);
+			}),
+		strings,
+		{
+			ctor: '::',
+			_0: avg,
+			_1: {
+				ctor: '::',
+				_0: best,
+				_1: {
+					ctor: '::',
+					_0: worst,
+					_1: {ctor: '[]'}
+				}
+			}
+		});
+	return {
+		ctor: '::',
+		_0: A2(
+			_user$project$Main$textAsTextarea,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$rows(3),
+				_1: {ctor: '[]'}
+			},
+			_user$project$Utils$unlines(texts)),
+		_1: {ctor: '[]'}
+	};
+};
+var _user$project$Main$view = function (model) {
+	var inputAreaValue = _user$project$Utils$unlines(
+		A2(
+			_elm_lang$core$List$take,
+			_user$project$SpeedSkating$getNrOfLaps(model.distanceChosen),
+			_user$project$Utils$lines(model.textContent)));
+	var avgLapTime = _user$project$SpeedSkating$getAvgLapTime(model.lapTimesFloats);
+	var avgLapTimeString = _elm_lang$core$Basics$isNaN(avgLapTime) ? '' : A3(_user$project$SpeedSkating$fixDecimalLength, model.decimalLimiter, model.rounding, avgLapTime);
+	var lapText = function () {
+		var _p9 = model.lapTimes;
+		if (_p9.ctor === '[]') {
+			return _user$project$SpeedSkating$getSplitDistances(model.distanceChosen);
+		} else {
+			return _user$project$Utils$unlines(model.lapTimes);
+		}
+	}();
+	var nrOfCols = A2(
+		_elm_lang$core$Basics$max,
+		40,
+		A2(
+			_elm_lang$core$Maybe$withDefault,
+			40,
+			_elm_lang$core$List$maximum(
+				A2(
+					_elm_lang$core$List$map,
+					_elm_lang$core$String$length,
+					_user$project$Utils$lines(lapText)))));
+	var nrOfLaps = _user$project$SpeedSkating$getNrOfLaps(model.distanceChosen);
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _user$project$Css$centered,
+			_1: {ctor: '[]'}
+		},
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			{ctor: '[]'},
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$br,
+						{ctor: '[]'},
+						{ctor: '[]'}),
+					_1: {ctor: '[]'}
+				},
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					model.distanceButtons,
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						{
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$br,
+								{ctor: '[]'},
+								{ctor: '[]'}),
+							_1: {ctor: '[]'}
+						},
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							_user$project$Main$createCalculateButtons(model),
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								{
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$br,
+										{ctor: '[]'},
+										{ctor: '[]'}),
+									_1: {ctor: '[]'}
+								},
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									_user$project$Main$testDataButtons,
+									A2(
+										_elm_lang$core$Basics_ops['++'],
+										{
+											ctor: '::',
+											_0: A2(
+												_elm_lang$html$Html$br,
+												{ctor: '[]'},
+												{ctor: '[]'}),
+											_1: {
+												ctor: '::',
+												_0: A2(
+													_user$project$Main$unadjustableTextarea,
+													{
+														ctor: '::',
+														_0: _elm_lang$html$Html_Attributes$cols(3),
+														_1: {
+															ctor: '::',
+															_0: _elm_lang$html$Html_Attributes$rows(nrOfLaps),
+															_1: {
+																ctor: '::',
+																_0: _elm_lang$html$Html_Attributes$placeholder(
+																	_user$project$Utils$unlines(
+																		A2(
+																			_elm_lang$core$List$map,
+																			_elm_lang$core$Basics$toString,
+																			A2(_elm_lang$core$List$range, 1, nrOfLaps)))),
+																_1: {ctor: '[]'}
+															}
+														}
+													},
+													{ctor: '[]'}),
+												_1: {
+													ctor: '::',
+													_0: A2(
+														_user$project$Main$unadjustableTextarea,
+														{
+															ctor: '::',
+															_0: _elm_lang$html$Html_Attributes$cols(15),
+															_1: {
+																ctor: '::',
+																_0: _elm_lang$html$Html_Attributes$rows(nrOfLaps),
+																_1: {
+																	ctor: '::',
+																	_0: _elm_lang$html$Html_Events$onInput(_user$project$Models$AreaInput),
+																	_1: {
+																		ctor: '::',
+																		_0: _elm_lang$html$Html_Attributes$value(inputAreaValue),
+																		_1: {
+																			ctor: '::',
+																			_0: _elm_lang$html$Html_Attributes$placeholder('Tider her....'),
+																			_1: {ctor: '[]'}
+																		}
+																	}
+																}
+															}
+														},
+														{ctor: '[]'}),
+													_1: {
+														ctor: '::',
+														_0: A2(
+															_user$project$Main$unadjustableTextarea,
+															{
+																ctor: '::',
+																_0: _elm_lang$html$Html_Attributes$cols(nrOfCols),
+																_1: {
+																	ctor: '::',
+																	_0: _elm_lang$html$Html_Attributes$rows(nrOfLaps),
+																	_1: {
+																		ctor: '::',
+																		_0: _elm_lang$html$Html_Attributes$readonly(true),
+																		_1: {
+																			ctor: '::',
+																			_0: _elm_lang$html$Html_Attributes$value(lapText),
+																			_1: {
+																				ctor: '::',
+																				_0: _user$project$Css$styleTabSize,
+																				_1: {ctor: '[]'}
+																			}
+																		}
+																	}
+																}
+															},
+															{ctor: '[]'}),
+														_1: {
+															ctor: '::',
+															_0: A2(
+																_elm_lang$html$Html$br,
+																{ctor: '[]'},
+																{ctor: '[]'}),
+															_1: {ctor: '[]'}
+														}
+													}
+												}
+											}
+										},
+										A2(
+											_elm_lang$core$Basics_ops['++'],
+											_user$project$Main$createLapTimeTexts(model),
+											{
+												ctor: '::',
+												_0: A2(
+													_elm_lang$html$Html$br,
+													{ctor: '[]'},
+													{ctor: '[]'}),
+												_1: {
+													ctor: '::',
+													_0: _elm_lang$html$Html$text('Velg formatering : '),
+													_1: {
+														ctor: '::',
+														_0: A2(
+															_elm_lang$html$Html$input,
+															{
+																ctor: '::',
+																_0: _elm_lang$html$Html_Attributes$style(
+																	{
+																		ctor: '::',
+																		_0: {ctor: '_Tuple2', _0: 'width', _1: '90px'},
+																		_1: {ctor: '[]'}
+																	}),
+																_1: {
+																	ctor: '::',
+																	_0: _elm_lang$html$Html_Events$onInput(_user$project$Models$FormatInput),
+																	_1: {
+																		ctor: '::',
+																		_0: _elm_lang$html$Html_Attributes$value(
+																			_elm_lang$core$String$fromList(model.outputFormatString)),
+																		_1: {ctor: '[]'}
+																	}
+																}
+															},
+															{ctor: '[]'}),
+														_1: {
+															ctor: '::',
+															_0: _user$project$Main$createFormatInfo(model),
+															_1: {
+																ctor: '::',
+																_0: A2(
+																	_elm_lang$html$Html$br,
+																	{ctor: '[]'},
+																	{ctor: '[]'}),
+																_1: {
+																	ctor: '::',
+																	_0: A2(
+																		_elm_lang$html$Html$br,
+																		{ctor: '[]'},
+																		{ctor: '[]'}),
+																	_1: {
+																		ctor: '::',
+																		_0: A2(
+																			_user$project$Main$textAsTextarea,
+																			{
+																				ctor: '::',
+																				_0: _elm_lang$html$Html_Attributes$cols(81),
+																				_1: {
+																					ctor: '::',
+																					_0: _elm_lang$html$Html_Attributes$rows(
+																						1 + _elm_lang$core$List$length(_user$project$Main$formatInfoText)),
+																					_1: {ctor: '[]'}
+																				}
+																			},
+																			A2(_elm_lang$core$String$join, '\n\t', _user$project$Main$formatInfoText)),
+																		_1: {ctor: '[]'}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}))))))))));
+};
+var _user$project$Main$createDistanceButtons = function (currentDist) {
+	var distances = {
+		ctor: '::',
+		_0: _user$project$Models$D500,
+		_1: {
+			ctor: '::',
+			_0: _user$project$Models$D1000,
+			_1: {
+				ctor: '::',
+				_0: _user$project$Models$D1500,
+				_1: {
+					ctor: '::',
+					_0: _user$project$Models$D3000,
+					_1: {
+						ctor: '::',
+						_0: _user$project$Models$D5000,
+						_1: {
+							ctor: '::',
+							_0: _user$project$Models$D10000,
+							_1: {ctor: '[]'}
+						}
+					}
+				}
+			}
+		}
+	};
+	var distanceStrings = A2(_elm_lang$core$List$map, _user$project$SpeedSkating$distanceToString, distances);
+	return A2(
+		_elm_lang$core$List$map,
+		function (dist) {
+			return A2(
+				_elm_lang$html$Html$button,
+				{
+					ctor: '::',
+					_0: _elm_lang$core$Native_Utils.eq(dist, currentDist) ? _user$project$Css$styleDistanceButtonChosen : _user$project$Css$styleDistanceButton,
+					_1: {
+						ctor: '::',
+						_0: _elm_lang$html$Html_Events$onClick(
+							_user$project$Models$DistanceButtonClicked(dist)),
+						_1: {ctor: '[]'}
+					}
+				},
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text(
+						_user$project$SpeedSkating$distanceToString(dist)),
+					_1: {ctor: '[]'}
+				});
+		},
+		distances);
+};
+var _user$project$Main$updateDecimalLimiter = function (model) {
+	return _elm_lang$core$Native_Utils.update(
+		model,
+		{
+			decimalLimiter: function () {
+				var _p10 = model.decimalLimiter;
+				if (_p10.ctor === 'Round') {
+					return _user$project$Models$Truncate;
+				} else {
+					return _user$project$Models$Round;
+				}
+			}()
+		});
+};
+var _user$project$Main$updateCalculate = function (model) {
+	var _p11 = model.splitTimes;
+	if (_p11.ctor === '[]') {
+		return _elm_lang$core$Native_Utils.update(
+			model,
+			{
+				infoMsg: _user$project$Models$ErrorMsg(
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						'Kan ikke regne ut : ',
+						A3(
+							_user$project$Utils$replaceRegexWith,
+							'Kan ikke regne ut : ',
+							'',
+							_user$project$Main$getInfoMsgString(model.infoMsg))))
+			});
+	} else {
+		var resultToInfoMsg = function (res) {
+			var _p12 = res;
+			if (_p12.ctor === 'Ok') {
+				return _user$project$Models$Instruction('Regnet ut');
+			} else {
+				return _p12._0;
+			}
+		};
+		var newModel = _elm_lang$core$Native_Utils.update(
+			model,
+			{
+				splitTimes: A2(
+					_elm_lang$core$List$take,
+					_user$project$SpeedSkating$getNrOfLaps(model.distanceChosen),
+					model.splitTimes)
+			});
+		var newLapTimes = _user$project$SpeedSkating$getLapTimes(newModel);
+		var _p13 = function () {
+			var _p14 = newLapTimes;
+			if (_p14.ctor === 'Err') {
+				return {
+					ctor: '_Tuple2',
+					_0: resultToInfoMsg(
+						_elm_lang$core$Result$Err(_p14._0)),
+					_1: {ctor: '[]'}
+				};
+			} else {
+				var _p15 = _p14._0;
+				return {
+					ctor: '_Tuple2',
+					_0: resultToInfoMsg(
+						_user$project$SpeedSkating$checkNoNegative(_p15)),
+					_1: _p15
+				};
+			}
+		}();
+		var errorMsg = _p13._0;
+		var xs = _p13._1;
+		var _p16 = {ctor: '_Tuple2', _0: errorMsg, _1: xs};
+		if (_p16._1.ctor === '[]') {
+			return _elm_lang$core$Native_Utils.update(
+				newModel,
+				{
+					lapTimes: _user$project$Utils$lines(
+						_user$project$SpeedSkating$getSplitDistances(newModel.distanceChosen)),
+					lapTimesFloats: {ctor: '[]'},
+					infoMsg: errorMsg
+				});
+		} else {
+			var _p17 = _p16._1;
+			return _elm_lang$core$Native_Utils.update(
+				newModel,
+				{
+					lapTimes: A2(
+						_user$project$SpeedSkating$getLapTimesAsList,
+						_elm_lang$core$Native_Utils.update(
+							newModel,
+							{lapTimesFloats: _p17}),
+						A2(
+							_elm_lang$core$Maybe$withDefault,
+							'',
+							_elm_lang$core$List$head(newModel.splitTimes))),
+					lapTimesFloats: _p17,
+					infoMsg: errorMsg
+				});
+		}
+	}
+};
+var _user$project$Main$updateInput = F2(
+	function (model, newContent) {
+		var newLinesReplaced = A2(
+			_elm_lang$core$List$filter,
+			function (_p18) {
+				return !_elm_lang$core$String$isEmpty(_p18);
+			},
+			A2(
+				_elm_lang$core$List$map,
+				_elm_lang$core$String$trim,
+				_user$project$Utils$lines(
+					A3(_user$project$Utils$replaceRegexWith, '[,:;-]', '.', newContent))));
+		var errorCheckValue = A2(
+			_elm_lang$core$Result$andThen,
+			_user$project$SpeedSkating$checkValidMinSec,
+			_user$project$SpeedSkating$errorCheckSplitTimes(newLinesReplaced));
+		var _p19 = function () {
+			var _p20 = {ctor: '_Tuple2', _0: newLinesReplaced, _1: errorCheckValue};
+			_v13_0:
+			do {
+				if (_p20._1.ctor === 'Ok') {
+					if (_p20._0.ctor === '[]') {
+						break _v13_0;
+					} else {
+						return {
+							ctor: '_Tuple2',
+							_0: _user$project$Models$Instruction('Regn ut'),
+							_1: newLinesReplaced
+						};
+					}
+				} else {
+					if (_p20._0.ctor === '[]') {
+						break _v13_0;
+					} else {
+						return {
+							ctor: '_Tuple2',
+							_0: _p20._1._0,
+							_1: {ctor: '[]'}
+						};
+					}
+				}
+			} while(false);
+			return {
+				ctor: '_Tuple2',
+				_0: _user$project$Models$Instruction('Skriv inn passeringstider'),
+				_1: {ctor: '[]'}
+			};
+		}();
+		var infoMsg = _p19._0;
+		var splitTimes = _p19._1;
+		return _elm_lang$core$Native_Utils.update(
+			model,
+			{textContent: newContent, infoMsg: infoMsg, splitTimes: splitTimes});
+	});
+var _user$project$Main$update = F2(
+	function (msg, model) {
+		update:
+		while (true) {
+			var _p21 = msg;
+			switch (_p21.ctor) {
+				case 'AreaInput':
+					return A2(_user$project$Main$updateInput, model, _p21._0);
+				case 'FormatInput':
+					return _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							outputFormatString: _elm_lang$core$String$toList(_p21._0)
+						});
+				case 'DistanceButtonClicked':
+					var _p22 = _p21._0;
+					var _v15 = _user$project$Models$AreaInput(model.textContent),
+						_v16 = _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							distanceChosen: _p22,
+							lapTimes: {ctor: '[]'},
+							splitTimes: A2(
+								_elm_lang$core$List$take,
+								_user$project$SpeedSkating$getNrOfLaps(_p22),
+								model.splitTimes),
+							distanceButtons: _user$project$Main$createDistanceButtons(_p22)
+						});
+					msg = _v15;
+					model = _v16;
+					continue update;
+				case 'CalculateButtonClicked':
+					return _user$project$Main$updateCalculate(model);
+				case 'RoundingButtonClicked':
+					var _v17 = _user$project$Models$CalculateButtonClicked,
+						_v18 = _user$project$SpeedSkating$updateRounding(model);
+					msg = _v17;
+					model = _v18;
+					continue update;
+				case 'DecimalLimiterClicked':
+					var _v19 = _user$project$Models$CalculateButtonClicked,
+						_v20 = _user$project$Main$updateDecimalLimiter(model);
+					msg = _v19;
+					model = _v20;
+					continue update;
+				default:
+					var _v21 = _user$project$Models$AreaInput(_p21._0),
+						_v22 = model;
+					msg = _v21;
+					model = _v22;
+					continue update;
+			}
+		}
+	});
+var _user$project$Main$model = {
+	textContent: '',
+	splitTimes: {ctor: '[]'},
+	distanceChosen: _user$project$Models$D10000,
+	infoMsg: _user$project$Models$Instruction('Skriv inn rundetider'),
+	lapTimes: {ctor: '[]'},
+	lapTimesFloats: {ctor: '[]'},
+	rounding: _user$project$Models$OneDecimal,
+	distanceButtons: _user$project$Main$createDistanceButtons(_user$project$Models$D10000),
+	outputFormatString: _user$project$SpeedSkating$defaultOutputFormat,
+	delimiter: _elm_lang$core$Native_Utils.chr('\t'),
+	decimalLimiter: _user$project$Models$Truncate
+};
+var _user$project$Main$main = _elm_lang$html$Html$beginnerProgram(
+	{model: _user$project$Main$model, update: _user$project$Main$update, view: _user$project$Main$view})();

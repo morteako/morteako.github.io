@@ -1,0 +1,461 @@
+var _user$project$SpeedSkating$fixDecimalLength = F3(
+	function (lim, rounding, nr) {
+		var roundedNr = A3(_user$project$Utils$roundToDec, lim, rounding, nr);
+		var splitted = A2(_elm_lang$core$String$split, '.', roundedNr);
+		var val = function () {
+			var _p0 = splitted;
+			_v0_2:
+			do {
+				if (_p0.ctor === '::') {
+					if (_p0._1.ctor === '[]') {
+						return A2(
+							_elm_lang$core$Basics_ops['++'],
+							_p0._0,
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								'.',
+								A3(
+									_elm_lang$core$String$padRight,
+									_user$project$Utils$getNumberOfZeroes(rounding),
+									_elm_lang$core$Native_Utils.chr('0'),
+									'')));
+					} else {
+						if (_p0._1._1.ctor === '[]') {
+							return A2(
+								_elm_lang$core$Basics_ops['++'],
+								_p0._0,
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									'.',
+									A3(
+										_elm_lang$core$String$padRight,
+										_user$project$Utils$getNumberOfZeroes(rounding),
+										_elm_lang$core$Native_Utils.chr('0'),
+										_p0._1._0)));
+						} else {
+							break _v0_2;
+						}
+					}
+				} else {
+					break _v0_2;
+				}
+			} while(false);
+			return _elm_lang$core$String$concat(splitted);
+		}();
+		var _p1 = rounding;
+		if (_p1.ctor === 'ZeroDecimal') {
+			return roundedNr;
+		} else {
+			return val;
+		}
+	});
+var _user$project$SpeedSkating$nextDecimalInfo = function (dec) {
+	var _p2 = dec;
+	switch (_p2.ctor) {
+		case 'ZeroDecimal':
+			return 'en desimal';
+		case 'OneDecimal':
+			return 'to desimaler';
+		default:
+			return 'null desimaler';
+	}
+};
+var _user$project$SpeedSkating$differenceToString = F2(
+	function (model, x) {
+		var number = A3(_user$project$SpeedSkating$fixDecimalLength, model.decimalLimiter, model.rounding, x);
+		return A2(_elm_lang$core$String$startsWith, '-', number) ? number : A2(_elm_lang$core$Basics_ops['++'], '+', number);
+	});
+var _user$project$SpeedSkating$nextRounding = function (rounding) {
+	var _p3 = rounding;
+	switch (_p3.ctor) {
+		case 'ZeroDecimal':
+			return _user$project$Models$OneDecimal;
+		case 'OneDecimal':
+			return _user$project$Models$TwoDecimal;
+		default:
+			return _user$project$Models$ZeroDecimal;
+	}
+};
+var _user$project$SpeedSkating$updateRounding = function (model) {
+	return _elm_lang$core$Native_Utils.update(
+		model,
+		{
+			rounding: _user$project$SpeedSkating$nextRounding(model.rounding)
+		});
+};
+var _user$project$SpeedSkating$getAvgLapTime = function (lapTimesFloats) {
+	return _user$project$Utils$average(
+		A2(
+			_elm_lang$core$Maybe$withDefault,
+			{ctor: '[]'},
+			_elm_lang$core$List$tail(lapTimesFloats)));
+};
+var _user$project$SpeedSkating$getLapTimesDifferences = function (model) {
+	var avgLapTime = _user$project$SpeedSkating$getAvgLapTime(model.lapTimesFloats);
+	var allDifferences = A2(
+		_elm_lang$core$List$map,
+		_user$project$SpeedSkating$differenceToString(model),
+		A2(
+			_elm_lang$core$List$map,
+			function (x) {
+				return x - avgLapTime;
+			},
+			model.lapTimesFloats));
+	var _p4 = allDifferences;
+	if (_p4.ctor === '::') {
+		return {ctor: '::', _0: '', _1: _p4._1};
+	} else {
+		return {ctor: '[]'};
+	}
+};
+var _user$project$SpeedSkating$charToLapInfo = function (x) {
+	var _p5 = x;
+	switch (_p5.valueOf()) {
+		case 'D':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapDifference);
+		case 'T':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapTime);
+		case 'H':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapSpeed);
+		case 'd':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapDistance);
+		case 'P':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapSplitTime);
+		default:
+			return _elm_lang$core$Maybe$Nothing;
+	}
+};
+var _user$project$SpeedSkating$formatInfoToChar = function (info) {
+	var _p6 = info;
+	switch (_p6.ctor) {
+		case 'LapDistance':
+			return _elm_lang$core$Native_Utils.chr('d');
+		case 'LapDifference':
+			return _elm_lang$core$Native_Utils.chr('D');
+		case 'LapTime':
+			return _elm_lang$core$Native_Utils.chr('T');
+		case 'LapSpeed':
+			return _elm_lang$core$Native_Utils.chr('H');
+		default:
+			return _elm_lang$core$Native_Utils.chr('P');
+	}
+};
+var _user$project$SpeedSkating$firstRoundLength = function (dist) {
+	var _p7 = dist;
+	switch (_p7.ctor) {
+		case 'D500':
+			return 100;
+		case 'D1000':
+			return 200;
+		case 'D1500':
+			return 300;
+		case 'D3000':
+			return 200;
+		case 'D5000':
+			return 200;
+		default:
+			return 400;
+	}
+};
+var _user$project$SpeedSkating$getLapSpeeds = function (model) {
+	return A2(
+		_elm_lang$core$List$map,
+		function (x) {
+			return A2(_elm_lang$core$Basics_ops['++'], x, ' km/t');
+		},
+		A2(
+			_elm_lang$core$List$map,
+			A2(_user$project$SpeedSkating$fixDecimalLength, model.decimalLimiter, model.rounding),
+			A2(
+				_elm_lang$core$List$indexedMap,
+				F2(
+					function (index, x) {
+						return (((_elm_lang$core$Native_Utils.cmp(index, 0) > 0) ? 400 : _user$project$SpeedSkating$firstRoundLength(model.distanceChosen)) / 1000) / (x / 3600.0);
+					}),
+				model.lapTimesFloats)));
+};
+var _user$project$SpeedSkating$distanceToMeters = function (dist) {
+	return A2(
+		_elm_lang$core$Result$withDefault,
+		0,
+		_elm_lang$core$String$toInt(
+			A3(
+				_elm_lang$core$String$slice,
+				1,
+				10,
+				_elm_lang$core$Basics$toString(dist))));
+};
+var _user$project$SpeedSkating$getNrOfLaps = function (dist) {
+	return _elm_lang$core$Basics$ceiling(
+		_elm_lang$core$Basics$toFloat(
+			_user$project$SpeedSkating$distanceToMeters(dist)) / 400.0);
+};
+var _user$project$SpeedSkating$getSplitDistances = function (dist) {
+	var distanceInMeters = _user$project$SpeedSkating$distanceToMeters(dist);
+	var nrOfLaps = _user$project$SpeedSkating$getNrOfLaps(dist);
+	var res = A4(
+		_user$project$Utils$untilScan,
+		F2(
+			function (x, y) {
+				return _elm_lang$core$Native_Utils.cmp(x, y) < 1;
+			})(nrOfLaps),
+		F2(
+			function (x, y) {
+				return x + y;
+			})(1),
+		function (lapNr) {
+			return A2(
+				_elm_lang$core$Basics_ops['++'],
+				_elm_lang$core$Basics$toString(distanceInMeters - (lapNr * 400)),
+				'm');
+		},
+		0);
+	return _user$project$Utils$unlines(
+		_elm_lang$core$List$reverse(res));
+};
+var _user$project$SpeedSkating$validMinSec = function (time) {
+	var firstTwoChars = A2(
+		_elm_lang$core$List$map,
+		_elm_lang$core$String$left(1),
+		A2(
+			_elm_lang$core$List$map,
+			A2(
+				_elm_lang$core$String$padLeft,
+				2,
+				_elm_lang$core$Native_Utils.chr('0')),
+			A2(
+				_elm_lang$core$List$take,
+				2,
+				A2(_elm_lang$core$String$split, '.', time))));
+	return A2(
+		_elm_lang$core$List$any,
+		function (x) {
+			return A2(_elm_lang$core$String$contains, x, '6789');
+		},
+		firstTwoChars);
+};
+var _user$project$SpeedSkating$checkTimesGeneral = F4(
+	function (pred, infoCreator, errorMsg, times) {
+		var res = A2(_user$project$Utils$findIndex, pred, times);
+		var _p8 = res;
+		if (_p8.ctor === 'Just') {
+			return _elm_lang$core$Result$Err(
+				infoCreator(
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						errorMsg,
+						_elm_lang$core$Basics$toString(_p8._0 + 1))));
+		} else {
+			return _elm_lang$core$Result$Ok(times);
+		}
+	});
+var _user$project$SpeedSkating$checkValidMinSec = function (splitTimes) {
+	return A4(_user$project$SpeedSkating$checkTimesGeneral, _user$project$SpeedSkating$validMinSec, _user$project$Models$ErrorMsg, 'Ugyldig tid. Minutter eller sekunder er over 60. Linje : ', splitTimes);
+};
+var _user$project$SpeedSkating$checkNoNegative = function (lapTimes) {
+	return A4(
+		_user$project$SpeedSkating$checkTimesGeneral,
+		F2(
+			function (x, y) {
+				return _elm_lang$core$Native_Utils.cmp(x, y) > 0;
+			})(0),
+		_user$project$Models$WarningMsg,
+		'Negativ rundetid for runde ',
+		lapTimes);
+};
+var _user$project$SpeedSkating$errorCheckSplitTimes = function (splitTimes) {
+	return A4(
+		_user$project$SpeedSkating$checkTimesGeneral,
+		function (_p9) {
+			return !A2(
+				_elm_lang$core$Regex$contains,
+				_elm_lang$core$Regex$regex('^\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}$'),
+				_p9);
+		},
+		_user$project$Models$ErrorMsg,
+		'feil input! Ikke på gyldig form : mm.ss.hh , for linje : ',
+		splitTimes);
+};
+var _user$project$SpeedSkating$splitToSeconds = function (splitTime) {
+	var parts = A3(
+		_elm_lang$core$Regex$split,
+		_elm_lang$core$Regex$AtMost(1),
+		_elm_lang$core$Regex$regex('[.]'),
+		splitTime);
+	var _p10 = parts;
+	if (((_p10.ctor === '::') && (_p10._1.ctor === '::')) && (_p10._1._1.ctor === '[]')) {
+		var _p11 = A2(_user$project$Utils$resultMap, _elm_lang$core$String$toFloat, parts);
+		if (_p11.ctor === 'Err') {
+			return _elm_lang$core$Result$Err(_p11._0);
+		} else {
+			return _elm_lang$core$Result$Ok(
+				A2(
+					_user$project$Utils$dotProduct,
+					_p11._0,
+					{
+						ctor: '::',
+						_0: 60.0,
+						_1: {
+							ctor: '::',
+							_0: 1.0,
+							_1: {ctor: '[]'}
+						}
+					}));
+		}
+	} else {
+		return _elm_lang$core$Result$Err(
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				'Line : ',
+				A2(_elm_lang$core$Basics_ops['++'], splitTime, ' | Could not split at .')));
+	}
+};
+var _user$project$SpeedSkating$distanceToString = function (distance) {
+	return A3(
+		_elm_lang$core$String$slice,
+		1,
+		10,
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			_elm_lang$core$Basics$toString(distance),
+			'm'));
+};
+var _user$project$SpeedSkating$calculateDiffs = function (secs) {
+	return A2(
+		_elm_lang$core$List$map,
+		_user$project$Utils$uncurryFlip(
+			F2(
+				function (x, y) {
+					return x - y;
+				})),
+		secs);
+};
+var _user$project$SpeedSkating$calculateLapTimes = function (numberList) {
+	return _user$project$SpeedSkating$calculateDiffs(
+		_user$project$Utils$combine(
+			{ctor: '::', _0: 0, _1: numberList}));
+};
+var _user$project$SpeedSkating$getLapTimes = function (model) {
+	var toSecondsResult = A2(_user$project$Utils$resultMap, _user$project$SpeedSkating$splitToSeconds, model.splitTimes);
+	var _p12 = toSecondsResult;
+	if (_p12.ctor === 'Ok') {
+		return _elm_lang$core$Result$Ok(
+			_user$project$SpeedSkating$calculateLapTimes(_p12._0));
+	} else {
+		return _elm_lang$core$Result$Err(
+			_user$project$Models$ErrorMsg(_p12._0));
+	}
+};
+var _user$project$SpeedSkating$defaultOutputFormat = A2(
+	_elm_lang$core$List$map,
+	_user$project$SpeedSkating$formatInfoToChar,
+	{
+		ctor: '::',
+		_0: _user$project$Models$LapDistance,
+		_1: {
+			ctor: '::',
+			_0: _user$project$Models$LapTime,
+			_1: {
+				ctor: '::',
+				_0: _user$project$Models$LapDifference,
+				_1: {
+					ctor: '::',
+					_0: _user$project$Models$LapSpeed,
+					_1: {ctor: '[]'}
+				}
+			}
+		}
+	});
+var _user$project$SpeedSkating$getOutputFormat = function (outputStr) {
+	var res = A2(_elm_lang$core$List$filterMap, _user$project$SpeedSkating$charToLapInfo, outputStr);
+	var _p13 = res;
+	if (_p13.ctor === '[]') {
+		return A2(_elm_lang$core$List$filterMap, _user$project$SpeedSkating$charToLapInfo, _user$project$SpeedSkating$defaultOutputFormat);
+	} else {
+		return res;
+	}
+};
+var _user$project$SpeedSkating$getLapTimesAsList = F2(
+	function (model, firstSplitTime) {
+		var pad = function (ss) {
+			var maxStrLength = A2(
+				_elm_lang$core$Maybe$withDefault,
+				1,
+				_elm_lang$core$List$maximum(
+					A2(_elm_lang$core$List$map, _elm_lang$core$String$length, ss)));
+			return A2(
+				_elm_lang$core$List$map,
+				A2(
+					_elm_lang$core$String$padRight,
+					maxStrLength,
+					_elm_lang$core$Native_Utils.chr(' ')),
+				ss);
+		};
+		var concatFullWithComma = _user$project$Utils$map2FullId(
+			F2(
+				function (x, y) {
+					return A2(
+						_elm_lang$core$Basics_ops['++'],
+						x,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							_elm_lang$core$String$fromList(
+								{
+									ctor: '::',
+									_0: _elm_lang$core$Native_Utils.chr(' '),
+									_1: {
+										ctor: '::',
+										_0: model.delimiter,
+										_1: {
+											ctor: '::',
+											_0: _elm_lang$core$Native_Utils.chr(' '),
+											_1: {ctor: '[]'}
+										}
+									}
+								}),
+							y));
+				}));
+		var lapTimesStrings = A2(
+			_elm_lang$core$List$map,
+			A2(_user$project$SpeedSkating$fixDecimalLength, model.decimalLimiter, model.rounding),
+			model.lapTimesFloats);
+		var splitDistances = _user$project$Utils$lines(
+			_user$project$SpeedSkating$getSplitDistances(model.distanceChosen));
+		var lapInfoFunc = function (lapInfo) {
+			var _p14 = lapInfo;
+			switch (_p14.ctor) {
+				case 'LapDistance':
+					return _user$project$Utils$lines(
+						_user$project$SpeedSkating$getSplitDistances(model.distanceChosen));
+				case 'LapDifference':
+					return _user$project$SpeedSkating$getLapTimesDifferences(model);
+				case 'LapTime':
+					return A2(
+						_elm_lang$core$List$map,
+						A2(_user$project$SpeedSkating$fixDecimalLength, model.decimalLimiter, model.rounding),
+						model.lapTimesFloats);
+				case 'LapSpeed':
+					return _user$project$SpeedSkating$getLapSpeeds(model);
+				default:
+					return model.splitTimes;
+			}
+		};
+		var lapInfoLists = function (prev) {
+			return A2(
+				_elm_lang$core$List$map,
+				A2(
+					_user$project$Utils$listPadRight,
+					_user$project$SpeedSkating$getNrOfLaps(model.distanceChosen),
+					''),
+				prev);
+		}(
+			A2(
+				_elm_lang$core$List$map,
+				lapInfoFunc,
+				_user$project$SpeedSkating$getOutputFormat(model.outputFormatString)));
+		return A3(
+			_elm_lang$core$List$foldr,
+			concatFullWithComma,
+			{ctor: '[]'},
+			A2(_elm_lang$core$List$map, pad, lapInfoLists));
+	});

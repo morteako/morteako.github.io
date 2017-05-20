@@ -12,7 +12,7 @@ import Css exposing (..)
 
 model : Model
 model =
-    { textContent = testData10k
+    { textContent = ""
     , splitTimes = []
     , distanceChosen = D10000
     , infoMsg = Instruction "Skriv inn rundetider"
@@ -147,7 +147,11 @@ update msg model =
         DecimalLimiterClicked ->
             update CalculateButtonClicked (updateDecimalLimiter model)
 
+        TestDataButtonClicked testData ->
+            update (AreaInput testData) model
 
+
+updateDecimalLimiter : Model -> Model
 updateDecimalLimiter model =
     { model
         | decimalLimiter =
@@ -267,6 +271,8 @@ view model =
                 ++ model.distanceButtons
                 ++ [ br [] [] ]
                 ++ createCalculateButtons model
+                ++ [ br [] [] ]
+                ++ testDataButtons
                 ++ [ br [] []
                    , unadjustableTextarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
                    , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput AreaInput, value inputAreaValue, placeholder "Tider her...." ] []
@@ -322,6 +328,13 @@ createFormatInfo model =
                     "Ugyldig symbol : " ++ String.fromChar x
     in
         text infoTxt
+
+
+testDataButtons : List (Html Msg)
+testDataButtons =
+    [ button [ styleDistanceButton, onClick <| TestDataButtonClicked Test.testData10k ] [ text "Testdata : Morten - 10k" ]
+    , button [ styleDistanceButton, onClick <| TestDataButtonClicked Test.testDataWorldRecord10k ] [ text "Testdata : Bloomen - 10k" ]
+    ]
 
 
 createCalculateButtons : Model -> List (Html Msg)
