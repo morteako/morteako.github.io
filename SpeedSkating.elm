@@ -3,11 +3,7 @@ module SpeedSkating exposing (..)
 import Models exposing (..)
 import Regex exposing (..)
 import Utils exposing (..)
-
-
-defaultOutputFormat : List Char
-defaultOutputFormat =
-    List.map formatInfoToChar [ LapDistance, LapTime, LapDifference, LapSpeed ]
+import DataFormat exposing (..)
 
 
 calculateDiffs : List ( number, number ) -> List number
@@ -15,12 +11,9 @@ calculateDiffs secs =
     List.map (uncurryFlip (-)) secs
 
 
-
---Cons 0 to get first split time as first lap time
-
-
 calculateLapTimes : List number -> List number
 calculateLapTimes numberList =
+    --Cons 0 to get first split time as first lap time
     calculateDiffs <| combine <| 0 :: numberList
 
 
@@ -49,20 +42,6 @@ splitToSeconds splitTime =
                 Result.Err <| "Line : " ++ splitTime ++ " | Could not split at ."
 
 
-getLapTimes : Model -> Result InfoMsg (List Float)
-getLapTimes model =
-    let
-        toSecondsResult =
-            resultMap splitToSeconds model.splitTimes
-    in
-        case toSecondsResult of
-            Ok v ->
-                Ok <| calculateLapTimes v
-
-            Err e ->
-                Err (ErrorMsg e)
-
-
 checkTimesGeneral : (a -> Bool) -> (String -> InfoMsg) -> String -> List a -> Result InfoMsg (List a)
 checkTimesGeneral pred infoCreator errorMsg times =
     let
@@ -77,6 +56,7 @@ checkTimesGeneral pred infoCreator errorMsg times =
                 Ok times
 
 
+validMinSec : String -> Bool
 validMinSec time =
     let
         firstTwoChars =
@@ -94,13 +74,17 @@ checkValidMinSec splitTimes =
     checkTimesGeneral validMinSec ErrorMsg "Ugyldig tid. Minutter eller sekunder er over 60. Linje : " splitTimes
 
 
+checkStartAndLap : List String -> Result InfoMsg (List String)
+checkStartAndLap stringList =
+    if List.length stringList >= 2 then
+        Ok stringList
+    else
+        Err <| ErrorMsg "Skriv inn en åpningstid og minst en rundetid"
+
+
+checkNoNegative : List number -> Result InfoMsg (List number)
 checkNoNegative lapTimes =
     checkTimesGeneral ((>) 0) WarningMsg "Negativ rundetid for runde " lapTimes
-
-
-
--- Nothing : No error
--- Just number : Error at line <number>
 
 
 errorCheckSplitTimes : List String -> Result InfoMsg (List String)
@@ -110,6 +94,15 @@ errorCheckSplitTimes splitTimes =
         ErrorMsg
         "feil input! Ikke på gyldig form : mm.ss.hh , for linje : "
         splitTimes
+
+
+errorCheckLapTimes : List String -> Result InfoMsg (List String)
+errorCheckLapTimes lapTimes =
+    checkTimesGeneral
+        (not << Regex.contains (Regex.regex "^\\d{1,2}\\.\\d{1,2}$"))
+        ErrorMsg
+        "feil input! Ikke på gyldig rundetid-form : ss.hh , for linje : "
+        lapTimes
 
 
 getNrOfLaps : Distance -> Int
@@ -126,6 +119,7 @@ distanceToMeters dist =
         |> Result.withDefault 0
 
 
+getSplitDistances : Distance -> String
 getSplitDistances dist =
     let
         nrOfLaps =
@@ -179,58 +173,41 @@ firstRoundLength dist =
             400
 
 
-formatInfoToChar : LapInfo -> Char
-formatInfoToChar info =
-    case info of
-        LapDistance ->
-            'd'
-
-        LapDifference ->
-            'D'
-
-        LapTime ->
-            'T'
-
-        LapSpeed ->
-            'H'
-
-        LapSplitTime ->
-            'P'
-
-
-charToLapInfo x =
-    case x of
-        'D' ->
-            Just LapDifference
-
-        'T' ->
-            Just LapTime
-
-        'H' ->
-            Just LapSpeed
-
-        'd' ->
-            Just LapDistance
-
-        'P' ->
-            Just LapSplitTime
-
-        _ ->
-            Nothing
-
-
-getOutputFormat : List Char -> List LapInfo
-getOutputFormat outputStr =
+secondsToSplit : Float -> String
+secondsToSplit secs =
     let
-        res =
-            List.filterMap charToLapInfo outputStr
-    in
-        case res of
-            [] ->
-                List.filterMap charToLapInfo defaultOutputFormat
+        mins =
+            floor secs // 60
 
-            _ ->
-                res
+        secsLeft =
+            secs - (toFloat mins * 60.0)
+    in
+        toString mins ++ "." ++ toString secsLeft
+
+
+createSplitTimes : Model -> List String
+createSplitTimes model =
+    case model.currentMode.modeType of
+        SplitTimesMode ->
+            model.splitTimes
+
+        LapTimeMode _ ->
+            let
+                start =
+                    List.head model.lapTimesFloats
+
+                lapTime =
+                    last model.lapTimesFloats
+            in
+                case ( start, lapTime ) of
+                    ( Just s, Just l ) ->
+                        --drop to "correct" scanl default value and length
+                        List.drop 1 model.lapTimesFloats
+                            |> List.scanl (+) s
+                            |> fixSplitTimes model.decimalLimiter model.rounding
+
+                    _ ->
+                        List.map toString model.splitTimes
 
 
 getLapTimesAsList : Model -> String -> List String
@@ -252,7 +229,7 @@ getLapTimesAsList model firstSplitTime =
                     getLapSpeeds model
 
                 LapSplitTime ->
-                    model.splitTimes
+                    createSplitTimes model
 
         splitDistances =
             lines <| getSplitDistances model.distanceChosen
@@ -337,6 +314,7 @@ differenceToString model x =
             "+" ++ number
 
 
+nextDecimalInfo : RoundingType -> String
 nextDecimalInfo dec =
     case dec of
         ZeroDecimal ->
@@ -347,6 +325,39 @@ nextDecimalInfo dec =
 
         TwoDecimal ->
             "null desimaler"
+
+
+fixSplitTimes : DecimalLimiter -> RoundingType -> List Float -> List String
+fixSplitTimes lim rounding times =
+    let
+        f secs =
+            let
+                mins =
+                    floor secs // 60
+
+                secsLeft =
+                    secs - (toFloat mins * 60.0)
+
+                ms =
+                    toString mins
+
+                fixed =
+                    fixDecimalLength lim rounding secsLeft
+
+                splitted =
+                    String.split "." fixed
+
+                aa =
+                    case splitted of
+                        [ a, b ] ->
+                            String.padLeft 2 '0' a ++ "." ++ b
+
+                        _ ->
+                            fixed
+            in
+                String.padLeft 2 ' ' ms ++ "." ++ aa
+    in
+        List.map f times
 
 
 fixDecimalLength : DecimalLimiter -> RoundingType -> Float -> String

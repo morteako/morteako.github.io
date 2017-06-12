@@ -8,14 +8,16 @@ import Utils exposing (..)
 import SpeedSkating exposing (..)
 import Test exposing (..)
 import Css exposing (..)
+import DataFormat exposing (..)
+import LapTimeMode exposing (..)
 
 
-model : Model
-model =
+createModel : Mode -> Model
+createModel mode =
     { textContent = ""
     , splitTimes = []
     , distanceChosen = D10000
-    , infoMsg = Instruction "Skriv inn rundetider"
+    , infoMsg = Instruction mode.infoWhenBlank
     , lapTimes = []
     , lapTimesFloats = []
     , rounding = OneDecimal
@@ -23,6 +25,31 @@ model =
     , outputFormatString = defaultOutputFormat
     , delimiter = '\t'
     , decimalLimiter = Truncate
+    , currentMode = mode
+    , lapProgressionString = "0.0"
+    }
+
+
+model : Model
+model =
+    createModel lapTimeMode
+
+
+splitTimesMode : Mode
+splitTimesMode =
+    { modeType = SplitTimesMode
+    , infoWhenBlank = "Skriv inn passeringstider"
+    , checkInput = Result.andThen checkValidMinSec << errorCheckSplitTimes
+    , getLapTimes = getLapTimesSplitMode
+    }
+
+
+lapTimeMode : Mode
+lapTimeMode =
+    { modeType = LapTimeMode 0.0
+    , infoWhenBlank = "Skriv inn åpningstid og en rundetid"
+    , checkInput = Result.andThen checkStartAndLap << errorCheckLapTimes
+    , getLapTimes = generateLapTimes
     }
 
 
@@ -32,20 +59,17 @@ updateInput model newContent =
         newLinesReplaced =
             newContent
                 |> replaceRegexWith "[,:;-]" "."
-                -- |> replaceRegexWith "[ ]" "\n"
                 |> lines
                 |> List.map String.trim
                 |> List.filter (not << String.isEmpty)
 
         errorCheckValue =
-            newLinesReplaced
-                |> errorCheckSplitTimes
-                |> Result.andThen checkValidMinSec
+            model.currentMode.checkInput newLinesReplaced
 
         ( infoMsg, splitTimes ) =
             case ( newLinesReplaced, errorCheckValue ) of
                 ( [], _ ) ->
-                    ( Instruction "Skriv inn passeringstider", [] )
+                    ( Instruction model.currentMode.infoWhenBlank, [] )
 
                 ( _, Ok _ ) ->
                     ( Instruction "Regn ut", newLinesReplaced )
@@ -77,7 +101,7 @@ updateCalculate model =
                     { model | splitTimes = List.take (getNrOfLaps model.distanceChosen) model.splitTimes }
 
                 newLapTimes =
-                    getLapTimes newModel
+                    newModel.currentMode.getLapTimes (ModelArg newModel)
 
                 resultToInfoMsg res =
                     case res of
@@ -95,24 +119,56 @@ updateCalculate model =
                         Ok v ->
                             ( resultToInfoMsg (checkNoNegative v), v )
             in
-                case ( errorMsg, xs ) of
-                    ( _, [] ) ->
+                case xs of
+                    [] ->
                         { newModel
                             | lapTimes = lines <| getSplitDistances newModel.distanceChosen
                             , lapTimesFloats = []
                             , infoMsg = errorMsg
                         }
 
-                    ( _, floatList ) ->
+                    floatList ->
                         { newModel
                             | lapTimes =
                                 getLapTimesAsList
                                     { newModel | lapTimesFloats = floatList }
-                                <|
-                                    Maybe.withDefault "" (List.head newModel.splitTimes)
+                                    (Maybe.withDefault "" <| List.head newModel.splitTimes)
                             , lapTimesFloats = floatList
                             , infoMsg = errorMsg
                         }
+
+
+updateDecimalLimiter : Model -> Model
+updateDecimalLimiter model =
+    { model
+        | decimalLimiter =
+            case model.decimalLimiter of
+                Round ->
+                    Truncate
+
+                Truncate ->
+                    Round
+    }
+
+
+updateLapProgessionInput : String -> Model -> Model
+updateLapProgessionInput input model =
+    case String.toFloat input of
+        Err _ ->
+            { model | currentMode = changeLapProgression model.currentMode 0.0, lapProgressionString = "" }
+
+        Ok v ->
+            { model | currentMode = changeLapProgression model.currentMode v, lapProgressionString = toString v }
+
+
+changeLapProgression : Mode -> Float -> Mode
+changeLapProgression mode val =
+    case mode.modeType of
+        LapTimeMode _ ->
+            { mode | modeType = LapTimeMode val }
+
+        SplitTimesMode ->
+            mode
 
 
 update : Msg -> Model -> Model
@@ -137,11 +193,6 @@ update msg model =
             updateCalculate model
 
         RoundingButtonClicked ->
-            -- case model.splitTimes of
-            --     [] ->
-            --         (updateRounding model)
-            --
-            --     _ ->
             update CalculateButtonClicked (updateRounding model)
 
         DecimalLimiterClicked ->
@@ -150,18 +201,11 @@ update msg model =
         TestDataButtonClicked testData ->
             update (AreaInput testData) model
 
+        ModeButtonClicked ->
+            changeMode model
 
-updateDecimalLimiter : Model -> Model
-updateDecimalLimiter model =
-    { model
-        | decimalLimiter =
-            case model.decimalLimiter of
-                Round ->
-                    Truncate
-
-                Truncate ->
-                    Round
-    }
+        LapProgressionInput input ->
+            updateLapProgessionInput input model
 
 
 createDistanceButtons : Distance -> List (Html Msg)
@@ -186,23 +230,6 @@ createDistanceButtons currentDist =
                     [ text <| distanceToString dist ]
             )
             distances
-
-
-
--- lapInfoName : LapInfo -> String
--- lapInfoName lapInfo =
---     case lapInfo of
---         LapDistance ->
---             "Passeringsdistanse"
---
---         LapDifference ->
---             "Differanse"
---
---         LapTime ->
---             "Rundetid"
---
---         LapSpeed ->
---             "Hastighet"
 
 
 createLapTimeTexts : Model -> List (Html msg)
@@ -231,6 +258,11 @@ createLapTimeTexts model =
         [ textAsTextarea [ rows 3 ] <| unlines texts ]
 
 
+linebreak : Html msg
+linebreak =
+    br [] []
+
+
 view : Model -> Html Msg
 view model =
     let
@@ -240,19 +272,11 @@ view model =
         lapText =
             case model.lapTimes of
                 [] ->
+                    --output is just the split distances
                     getSplitDistances model.distanceChosen
 
                 _ ->
                     unlines model.lapTimes
-
-        avgLapTime =
-            getAvgLapTime model.lapTimesFloats
-
-        avgLapTimeString =
-            if isNaN avgLapTime then
-                ""
-            else
-                fixDecimalLength model.decimalLimiter model.rounding avgLapTime
 
         inputAreaValue =
             model.textContent
@@ -265,69 +289,43 @@ view model =
     in
         div [ centered ] <|
             ([]
-                -- ++ [ br [] [] ]
-                -- ++ [ input [ maxlength 1, onInput FormatInput ] [] ]
-                ++ [ br [] [] ]
+                ++ [ linebreak ]
                 ++ model.distanceButtons
-                ++ [ br [] [] ]
+                ++ [ linebreak ]
                 ++ createCalculateButtons model
-                ++ [ br [] [] ]
+                ++ [ linebreak ]
                 ++ testDataButtons
-                ++ [ br [] []
+                ++ [ linebreak
                    , unadjustableTextarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
                    , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput AreaInput, value inputAreaValue, placeholder "Tider her...." ] []
                    , unadjustableTextarea [ cols nrOfCols, rows nrOfLaps, readonly True, value lapText, styleTabSize ] []
-
-                   --    , unadjustableTextarea [ cols 15, rows 25, readonly True, value testData10k ] []
-                   , br [] []
+                   , linebreak
                    ]
+                ++ createLapProgressionInput model
                 ++ createLapTimeTexts model
-                ++ [ br [] []
+                ++ [ linebreak
                    , text "Velg formatering : "
                    , input [ style [ ( "width", "90px" ) ], onInput FormatInput, value <| String.fromList model.outputFormatString ] []
                    , createFormatInfo model
-                   , br [] []
-                   , br [] []
+                   , linebreak
+                   , linebreak
                    , textAsTextarea [ cols 81, rows <| 1 + List.length formatInfoText ] <| String.join "\n\t" formatInfoText
                    ]
             )
 
 
-formatInfoText : List String
-formatInfoText =
-    [ "Velg formatering. Mulige valg:"
-    , "d : distanse      - antall passerte meter for hver passering"
-    , "T : rundeTid      - rundetid for runden"
-    , "D : Differanse    - mellom snittrundetiden og hver rundetid"
-    , "H : Hastighet     - hastighet for runden i km/t"
-    , "P : Passeringstid - passeringstid for runden (samme som input)\nStandard er dTDH, som også vil bli brukt hvis det er ugyldig input"
-    ]
+createLapProgressionInput model =
+    case model.currentMode.modeType of
+        LapTimeMode val ->
+            [ linebreak
+            , text "Skriv inn rundeprogresjon: "
+            , input [ style [ ( "width", "90px" ) ], onInput LapProgressionInput ] []
+            , createLapProgressionInfo model
+            , linebreak
+            ]
 
-
-createFormatInfo : Model -> Html msg
-createFormatInfo model =
-    let
-        res =
-            List.filterMap
-                (\x ->
-                    case charToLapInfo x of
-                        Nothing ->
-                            Just x
-
-                        Just _ ->
-                            Nothing
-                )
-                model.outputFormatString
-
-        infoTxt =
-            case res of
-                [] ->
-                    ""
-
-                x :: xs ->
-                    "Ugyldig symbol : " ++ String.fromChar x
-    in
-        text infoTxt
+        _ ->
+            []
 
 
 testDataButtons : List (Html Msg)
@@ -352,7 +350,31 @@ createCalculateButtons model =
         , br [] []
         , button (extraAttribues ++ [ styleDecimalButton, onClick RoundingButtonClicked ]) [ text <| "Bytt til " ++ nextDecimalInfo model.rounding ]
         , button (extraAttribues ++ [ styleDecimalButton, onClick DecimalLimiterClicked ]) [ text <| "Bytt til " ++ nextDecimalLimiterInfo model.decimalLimiter ]
+        , button [ styleModeButton, onClick ModeButtonClicked ] [ text <| "Modus: " ++ nextModeInfo model.currentMode ]
         ]
+
+
+nextModeInfo : Mode -> String
+nextModeInfo mode =
+    case mode.modeType of
+        SplitTimesMode ->
+            "Passeringstid"
+
+        LapTimeMode _ ->
+            "Rundetid"
+
+
+changeMode : Model -> Model
+changeMode model =
+    { model
+        | currentMode =
+            case model.currentMode.modeType of
+                SplitTimesMode ->
+                    lapTimeMode
+
+                LapTimeMode _ ->
+                    splitTimesMode
+    }
 
 
 nextDecimalLimiterInfo : DecimalLimiter -> String
@@ -378,6 +400,7 @@ getInfoMsgString infoMsg =
             "Advarsel: " ++ string
 
 
+getInfoMsgCss : InfoMsg -> Attribute msg
 getInfoMsgCss infoMsg =
     case infoMsg of
         Instruction _ ->
@@ -390,6 +413,7 @@ getInfoMsgCss infoMsg =
             warningMsgStyle
 
 
+textAsTextarea : List (Attribute msg) -> String -> Html msg
 textAsTextarea attributes str =
     unadjustableTextarea ([ Css.styleNoOutline, readonly True, value str ] ++ attributes) []
 

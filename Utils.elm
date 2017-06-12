@@ -137,16 +137,9 @@ resultFoldr f v results =
         results
 
 
-
--- resultFoldrFuncs result funcs =
---     List.foldr
---         (\f g ->
---             case (f result) of
---                 Ok v ->
---                     g result
---         )
---         (Ok 1)
---         funcs
+last : List a -> Maybe a
+last =
+    List.head << List.reverse
 
 
 lines : String -> List String
@@ -199,6 +192,10 @@ roundToDec lim roundingType number =
         |> toString
 
 
+
+--map2 without truncation
+
+
 map2Full f2 fx fy xs ys =
     case ( xs, ys ) of
         ( [], _ ) ->
@@ -217,19 +214,15 @@ map2FullId f2 xs ys =
 
 findIndex : (a -> Bool) -> List a -> Maybe number
 findIndex pred xs =
-    let
-        index =
-            List.foldr
-                (\x y ->
-                    if pred x then
-                        Just 0
-                    else
-                        addMaybe (Just 1) y
-                )
-                Nothing
-                xs
-    in
-        index
+    List.foldr
+        (\x y ->
+            if pred x then
+                Just 0
+            else
+                addMaybe (Just 1) y
+        )
+        Nothing
+        xs
 
 
 average : List Float -> Float
@@ -245,6 +238,11 @@ safeAverage nrs =
 
         _ ->
             Just <| (List.sum nrs) / toFloat (List.length nrs)
+
+
+tupleMap2 : (a -> b) -> ( a, a ) -> ( b, b )
+tupleMap2 f ( a, b ) =
+    ( f a, f b )
 
 
 tupleMap3 : (a -> b) -> ( a, a, a ) -> ( b, b, b )

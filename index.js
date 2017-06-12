@@ -2675,6 +2675,344 @@ var _elm_lang$core$Array$repeat = F2(
 	});
 var _elm_lang$core$Array$Array = {ctor: 'Array'};
 
+//import Native.Utils //
+
+var _elm_lang$core$Native_Char = function() {
+
+return {
+	fromCode: function(c) { return _elm_lang$core$Native_Utils.chr(String.fromCharCode(c)); },
+	toCode: function(c) { return c.charCodeAt(0); },
+	toUpper: function(c) { return _elm_lang$core$Native_Utils.chr(c.toUpperCase()); },
+	toLower: function(c) { return _elm_lang$core$Native_Utils.chr(c.toLowerCase()); },
+	toLocaleUpper: function(c) { return _elm_lang$core$Native_Utils.chr(c.toLocaleUpperCase()); },
+	toLocaleLower: function(c) { return _elm_lang$core$Native_Utils.chr(c.toLocaleLowerCase()); }
+};
+
+}();
+var _elm_lang$core$Char$fromCode = _elm_lang$core$Native_Char.fromCode;
+var _elm_lang$core$Char$toCode = _elm_lang$core$Native_Char.toCode;
+var _elm_lang$core$Char$toLocaleLower = _elm_lang$core$Native_Char.toLocaleLower;
+var _elm_lang$core$Char$toLocaleUpper = _elm_lang$core$Native_Char.toLocaleUpper;
+var _elm_lang$core$Char$toLower = _elm_lang$core$Native_Char.toLower;
+var _elm_lang$core$Char$toUpper = _elm_lang$core$Native_Char.toUpper;
+var _elm_lang$core$Char$isBetween = F3(
+	function (low, high, $char) {
+		var code = _elm_lang$core$Char$toCode($char);
+		return (_elm_lang$core$Native_Utils.cmp(
+			code,
+			_elm_lang$core$Char$toCode(low)) > -1) && (_elm_lang$core$Native_Utils.cmp(
+			code,
+			_elm_lang$core$Char$toCode(high)) < 1);
+	});
+var _elm_lang$core$Char$isUpper = A2(
+	_elm_lang$core$Char$isBetween,
+	_elm_lang$core$Native_Utils.chr('A'),
+	_elm_lang$core$Native_Utils.chr('Z'));
+var _elm_lang$core$Char$isLower = A2(
+	_elm_lang$core$Char$isBetween,
+	_elm_lang$core$Native_Utils.chr('a'),
+	_elm_lang$core$Native_Utils.chr('z'));
+var _elm_lang$core$Char$isDigit = A2(
+	_elm_lang$core$Char$isBetween,
+	_elm_lang$core$Native_Utils.chr('0'),
+	_elm_lang$core$Native_Utils.chr('9'));
+var _elm_lang$core$Char$isOctDigit = A2(
+	_elm_lang$core$Char$isBetween,
+	_elm_lang$core$Native_Utils.chr('0'),
+	_elm_lang$core$Native_Utils.chr('7'));
+var _elm_lang$core$Char$isHexDigit = function ($char) {
+	return _elm_lang$core$Char$isDigit($char) || (A3(
+		_elm_lang$core$Char$isBetween,
+		_elm_lang$core$Native_Utils.chr('a'),
+		_elm_lang$core$Native_Utils.chr('f'),
+		$char) || A3(
+		_elm_lang$core$Char$isBetween,
+		_elm_lang$core$Native_Utils.chr('A'),
+		_elm_lang$core$Native_Utils.chr('F'),
+		$char));
+};
+
+//import Native.Utils //
+
+var _elm_lang$core$Native_Scheduler = function() {
+
+var MAX_STEPS = 10000;
+
+
+// TASKS
+
+function succeed(value)
+{
+	return {
+		ctor: '_Task_succeed',
+		value: value
+	};
+}
+
+function fail(error)
+{
+	return {
+		ctor: '_Task_fail',
+		value: error
+	};
+}
+
+function nativeBinding(callback)
+{
+	return {
+		ctor: '_Task_nativeBinding',
+		callback: callback,
+		cancel: null
+	};
+}
+
+function andThen(callback, task)
+{
+	return {
+		ctor: '_Task_andThen',
+		callback: callback,
+		task: task
+	};
+}
+
+function onError(callback, task)
+{
+	return {
+		ctor: '_Task_onError',
+		callback: callback,
+		task: task
+	};
+}
+
+function receive(callback)
+{
+	return {
+		ctor: '_Task_receive',
+		callback: callback
+	};
+}
+
+
+// PROCESSES
+
+function rawSpawn(task)
+{
+	var process = {
+		ctor: '_Process',
+		id: _elm_lang$core$Native_Utils.guid(),
+		root: task,
+		stack: null,
+		mailbox: []
+	};
+
+	enqueue(process);
+
+	return process;
+}
+
+function spawn(task)
+{
+	return nativeBinding(function(callback) {
+		var process = rawSpawn(task);
+		callback(succeed(process));
+	});
+}
+
+function rawSend(process, msg)
+{
+	process.mailbox.push(msg);
+	enqueue(process);
+}
+
+function send(process, msg)
+{
+	return nativeBinding(function(callback) {
+		rawSend(process, msg);
+		callback(succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
+function kill(process)
+{
+	return nativeBinding(function(callback) {
+		var root = process.root;
+		if (root.ctor === '_Task_nativeBinding' && root.cancel)
+		{
+			root.cancel();
+		}
+
+		process.root = null;
+
+		callback(succeed(_elm_lang$core$Native_Utils.Tuple0));
+	});
+}
+
+function sleep(time)
+{
+	return nativeBinding(function(callback) {
+		var id = setTimeout(function() {
+			callback(succeed(_elm_lang$core$Native_Utils.Tuple0));
+		}, time);
+
+		return function() { clearTimeout(id); };
+	});
+}
+
+
+// STEP PROCESSES
+
+function step(numSteps, process)
+{
+	while (numSteps < MAX_STEPS)
+	{
+		var ctor = process.root.ctor;
+
+		if (ctor === '_Task_succeed')
+		{
+			while (process.stack && process.stack.ctor === '_Task_onError')
+			{
+				process.stack = process.stack.rest;
+			}
+			if (process.stack === null)
+			{
+				break;
+			}
+			process.root = process.stack.callback(process.root.value);
+			process.stack = process.stack.rest;
+			++numSteps;
+			continue;
+		}
+
+		if (ctor === '_Task_fail')
+		{
+			while (process.stack && process.stack.ctor === '_Task_andThen')
+			{
+				process.stack = process.stack.rest;
+			}
+			if (process.stack === null)
+			{
+				break;
+			}
+			process.root = process.stack.callback(process.root.value);
+			process.stack = process.stack.rest;
+			++numSteps;
+			continue;
+		}
+
+		if (ctor === '_Task_andThen')
+		{
+			process.stack = {
+				ctor: '_Task_andThen',
+				callback: process.root.callback,
+				rest: process.stack
+			};
+			process.root = process.root.task;
+			++numSteps;
+			continue;
+		}
+
+		if (ctor === '_Task_onError')
+		{
+			process.stack = {
+				ctor: '_Task_onError',
+				callback: process.root.callback,
+				rest: process.stack
+			};
+			process.root = process.root.task;
+			++numSteps;
+			continue;
+		}
+
+		if (ctor === '_Task_nativeBinding')
+		{
+			process.root.cancel = process.root.callback(function(newRoot) {
+				process.root = newRoot;
+				enqueue(process);
+			});
+
+			break;
+		}
+
+		if (ctor === '_Task_receive')
+		{
+			var mailbox = process.mailbox;
+			if (mailbox.length === 0)
+			{
+				break;
+			}
+
+			process.root = process.root.callback(mailbox.shift());
+			++numSteps;
+			continue;
+		}
+
+		throw new Error(ctor);
+	}
+
+	if (numSteps < MAX_STEPS)
+	{
+		return numSteps + 1;
+	}
+	enqueue(process);
+
+	return numSteps;
+}
+
+
+// WORK QUEUE
+
+var working = false;
+var workQueue = [];
+
+function enqueue(process)
+{
+	workQueue.push(process);
+
+	if (!working)
+	{
+		setTimeout(work, 0);
+		working = true;
+	}
+}
+
+function work()
+{
+	var numSteps = 0;
+	var process;
+	while (numSteps < MAX_STEPS && (process = workQueue.shift()))
+	{
+		if (process.root)
+		{
+			numSteps = step(numSteps, process);
+		}
+	}
+	if (!process)
+	{
+		working = false;
+		return;
+	}
+	setTimeout(work, 0);
+}
+
+
+return {
+	succeed: succeed,
+	fail: fail,
+	nativeBinding: nativeBinding,
+	andThen: F2(andThen),
+	onError: F2(onError),
+	receive: receive,
+
+	spawn: spawn,
+	kill: kill,
+	sleep: sleep,
+	send: F2(send),
+
+	rawSpawn: rawSpawn,
+	rawSend: rawSend
+};
+
+}();
 //import //
 
 var _elm_lang$core$Native_Platform = function() {
@@ -3235,287 +3573,6 @@ return {
 
 }();
 
-//import Native.Utils //
-
-var _elm_lang$core$Native_Scheduler = function() {
-
-var MAX_STEPS = 10000;
-
-
-// TASKS
-
-function succeed(value)
-{
-	return {
-		ctor: '_Task_succeed',
-		value: value
-	};
-}
-
-function fail(error)
-{
-	return {
-		ctor: '_Task_fail',
-		value: error
-	};
-}
-
-function nativeBinding(callback)
-{
-	return {
-		ctor: '_Task_nativeBinding',
-		callback: callback,
-		cancel: null
-	};
-}
-
-function andThen(callback, task)
-{
-	return {
-		ctor: '_Task_andThen',
-		callback: callback,
-		task: task
-	};
-}
-
-function onError(callback, task)
-{
-	return {
-		ctor: '_Task_onError',
-		callback: callback,
-		task: task
-	};
-}
-
-function receive(callback)
-{
-	return {
-		ctor: '_Task_receive',
-		callback: callback
-	};
-}
-
-
-// PROCESSES
-
-function rawSpawn(task)
-{
-	var process = {
-		ctor: '_Process',
-		id: _elm_lang$core$Native_Utils.guid(),
-		root: task,
-		stack: null,
-		mailbox: []
-	};
-
-	enqueue(process);
-
-	return process;
-}
-
-function spawn(task)
-{
-	return nativeBinding(function(callback) {
-		var process = rawSpawn(task);
-		callback(succeed(process));
-	});
-}
-
-function rawSend(process, msg)
-{
-	process.mailbox.push(msg);
-	enqueue(process);
-}
-
-function send(process, msg)
-{
-	return nativeBinding(function(callback) {
-		rawSend(process, msg);
-		callback(succeed(_elm_lang$core$Native_Utils.Tuple0));
-	});
-}
-
-function kill(process)
-{
-	return nativeBinding(function(callback) {
-		var root = process.root;
-		if (root.ctor === '_Task_nativeBinding' && root.cancel)
-		{
-			root.cancel();
-		}
-
-		process.root = null;
-
-		callback(succeed(_elm_lang$core$Native_Utils.Tuple0));
-	});
-}
-
-function sleep(time)
-{
-	return nativeBinding(function(callback) {
-		var id = setTimeout(function() {
-			callback(succeed(_elm_lang$core$Native_Utils.Tuple0));
-		}, time);
-
-		return function() { clearTimeout(id); };
-	});
-}
-
-
-// STEP PROCESSES
-
-function step(numSteps, process)
-{
-	while (numSteps < MAX_STEPS)
-	{
-		var ctor = process.root.ctor;
-
-		if (ctor === '_Task_succeed')
-		{
-			while (process.stack && process.stack.ctor === '_Task_onError')
-			{
-				process.stack = process.stack.rest;
-			}
-			if (process.stack === null)
-			{
-				break;
-			}
-			process.root = process.stack.callback(process.root.value);
-			process.stack = process.stack.rest;
-			++numSteps;
-			continue;
-		}
-
-		if (ctor === '_Task_fail')
-		{
-			while (process.stack && process.stack.ctor === '_Task_andThen')
-			{
-				process.stack = process.stack.rest;
-			}
-			if (process.stack === null)
-			{
-				break;
-			}
-			process.root = process.stack.callback(process.root.value);
-			process.stack = process.stack.rest;
-			++numSteps;
-			continue;
-		}
-
-		if (ctor === '_Task_andThen')
-		{
-			process.stack = {
-				ctor: '_Task_andThen',
-				callback: process.root.callback,
-				rest: process.stack
-			};
-			process.root = process.root.task;
-			++numSteps;
-			continue;
-		}
-
-		if (ctor === '_Task_onError')
-		{
-			process.stack = {
-				ctor: '_Task_onError',
-				callback: process.root.callback,
-				rest: process.stack
-			};
-			process.root = process.root.task;
-			++numSteps;
-			continue;
-		}
-
-		if (ctor === '_Task_nativeBinding')
-		{
-			process.root.cancel = process.root.callback(function(newRoot) {
-				process.root = newRoot;
-				enqueue(process);
-			});
-
-			break;
-		}
-
-		if (ctor === '_Task_receive')
-		{
-			var mailbox = process.mailbox;
-			if (mailbox.length === 0)
-			{
-				break;
-			}
-
-			process.root = process.root.callback(mailbox.shift());
-			++numSteps;
-			continue;
-		}
-
-		throw new Error(ctor);
-	}
-
-	if (numSteps < MAX_STEPS)
-	{
-		return numSteps + 1;
-	}
-	enqueue(process);
-
-	return numSteps;
-}
-
-
-// WORK QUEUE
-
-var working = false;
-var workQueue = [];
-
-function enqueue(process)
-{
-	workQueue.push(process);
-
-	if (!working)
-	{
-		setTimeout(work, 0);
-		working = true;
-	}
-}
-
-function work()
-{
-	var numSteps = 0;
-	var process;
-	while (numSteps < MAX_STEPS && (process = workQueue.shift()))
-	{
-		if (process.root)
-		{
-			numSteps = step(numSteps, process);
-		}
-	}
-	if (!process)
-	{
-		working = false;
-		return;
-	}
-	setTimeout(work, 0);
-}
-
-
-return {
-	succeed: succeed,
-	fail: fail,
-	nativeBinding: nativeBinding,
-	andThen: F2(andThen),
-	onError: F2(onError),
-	receive: receive,
-
-	spawn: spawn,
-	kill: kill,
-	sleep: sleep,
-	send: F2(send),
-
-	rawSpawn: rawSpawn,
-	rawSend: rawSend
-};
-
-}();
 var _elm_lang$core$Platform_Cmd$batch = _elm_lang$core$Native_Platform.batch;
 var _elm_lang$core$Platform_Cmd$none = _elm_lang$core$Platform_Cmd$batch(
 	{ctor: '[]'});
@@ -4058,63 +4115,6 @@ return {
 };
 
 }();
-
-//import Native.Utils //
-
-var _elm_lang$core$Native_Char = function() {
-
-return {
-	fromCode: function(c) { return _elm_lang$core$Native_Utils.chr(String.fromCharCode(c)); },
-	toCode: function(c) { return c.charCodeAt(0); },
-	toUpper: function(c) { return _elm_lang$core$Native_Utils.chr(c.toUpperCase()); },
-	toLower: function(c) { return _elm_lang$core$Native_Utils.chr(c.toLowerCase()); },
-	toLocaleUpper: function(c) { return _elm_lang$core$Native_Utils.chr(c.toLocaleUpperCase()); },
-	toLocaleLower: function(c) { return _elm_lang$core$Native_Utils.chr(c.toLocaleLowerCase()); }
-};
-
-}();
-var _elm_lang$core$Char$fromCode = _elm_lang$core$Native_Char.fromCode;
-var _elm_lang$core$Char$toCode = _elm_lang$core$Native_Char.toCode;
-var _elm_lang$core$Char$toLocaleLower = _elm_lang$core$Native_Char.toLocaleLower;
-var _elm_lang$core$Char$toLocaleUpper = _elm_lang$core$Native_Char.toLocaleUpper;
-var _elm_lang$core$Char$toLower = _elm_lang$core$Native_Char.toLower;
-var _elm_lang$core$Char$toUpper = _elm_lang$core$Native_Char.toUpper;
-var _elm_lang$core$Char$isBetween = F3(
-	function (low, high, $char) {
-		var code = _elm_lang$core$Char$toCode($char);
-		return (_elm_lang$core$Native_Utils.cmp(
-			code,
-			_elm_lang$core$Char$toCode(low)) > -1) && (_elm_lang$core$Native_Utils.cmp(
-			code,
-			_elm_lang$core$Char$toCode(high)) < 1);
-	});
-var _elm_lang$core$Char$isUpper = A2(
-	_elm_lang$core$Char$isBetween,
-	_elm_lang$core$Native_Utils.chr('A'),
-	_elm_lang$core$Native_Utils.chr('Z'));
-var _elm_lang$core$Char$isLower = A2(
-	_elm_lang$core$Char$isBetween,
-	_elm_lang$core$Native_Utils.chr('a'),
-	_elm_lang$core$Native_Utils.chr('z'));
-var _elm_lang$core$Char$isDigit = A2(
-	_elm_lang$core$Char$isBetween,
-	_elm_lang$core$Native_Utils.chr('0'),
-	_elm_lang$core$Native_Utils.chr('9'));
-var _elm_lang$core$Char$isOctDigit = A2(
-	_elm_lang$core$Char$isBetween,
-	_elm_lang$core$Native_Utils.chr('0'),
-	_elm_lang$core$Native_Utils.chr('7'));
-var _elm_lang$core$Char$isHexDigit = function ($char) {
-	return _elm_lang$core$Char$isDigit($char) || (A3(
-		_elm_lang$core$Char$isBetween,
-		_elm_lang$core$Native_Utils.chr('a'),
-		_elm_lang$core$Native_Utils.chr('f'),
-		$char) || A3(
-		_elm_lang$core$Char$isBetween,
-		_elm_lang$core$Native_Utils.chr('A'),
-		_elm_lang$core$Native_Utils.chr('F'),
-		$char));
-};
 
 var _elm_lang$core$String$fromList = _elm_lang$core$Native_String.fromList;
 var _elm_lang$core$String$toList = _elm_lang$core$Native_String.toList;
@@ -5077,33 +5077,6 @@ var _elm_lang$core$Dict$diff = F2(
 			t2);
 	});
 
-var _elm_lang$core$Tuple$mapSecond = F2(
-	function (func, _p0) {
-		var _p1 = _p0;
-		return {
-			ctor: '_Tuple2',
-			_0: _p1._0,
-			_1: func(_p1._1)
-		};
-	});
-var _elm_lang$core$Tuple$mapFirst = F2(
-	function (func, _p2) {
-		var _p3 = _p2;
-		return {
-			ctor: '_Tuple2',
-			_0: func(_p3._0),
-			_1: _p3._1
-		};
-	});
-var _elm_lang$core$Tuple$second = function (_p4) {
-	var _p5 = _p4;
-	return _p5._1;
-};
-var _elm_lang$core$Tuple$first = function (_p6) {
-	var _p7 = _p6;
-	return _p7._0;
-};
-
 var _elm_lang$core$Debug$crash = _elm_lang$core$Native_Debug.crash;
 var _elm_lang$core$Debug$log = _elm_lang$core$Native_Debug.log;
 
@@ -5876,6 +5849,33 @@ return {
 };
 
 }();
+
+var _elm_lang$core$Tuple$mapSecond = F2(
+	function (func, _p0) {
+		var _p1 = _p0;
+		return {
+			ctor: '_Tuple2',
+			_0: _p1._0,
+			_1: func(_p1._1)
+		};
+	});
+var _elm_lang$core$Tuple$mapFirst = F2(
+	function (func, _p2) {
+		var _p3 = _p2;
+		return {
+			ctor: '_Tuple2',
+			_0: func(_p3._0),
+			_1: _p3._1
+		};
+	});
+var _elm_lang$core$Tuple$second = function (_p4) {
+	var _p5 = _p4;
+	return _p5._1;
+};
+var _elm_lang$core$Tuple$first = function (_p6) {
+	var _p7 = _p6;
+	return _p7._0;
+};
 
 var _elm_lang$core$Regex$split = _elm_lang$core$Native_Regex.split;
 var _elm_lang$core$Regex$replace = _elm_lang$core$Native_Regex.replace;
@@ -8429,6 +8429,52 @@ var _user$project$Css$disabled = _elm_lang$html$Html_Attributes$style(
 			_1: {ctor: '[]'}
 		}
 	});
+var _user$project$Css$styleModeButton = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: {ctor: '_Tuple2', _0: 'background-color', _1: 'red'},
+		_1: {
+			ctor: '::',
+			_0: {ctor: '_Tuple2', _0: 'border', _1: 'none'},
+			_1: {
+				ctor: '::',
+				_0: {ctor: '_Tuple2', _0: 'color', _1: 'white'},
+				_1: {
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'padding', _1: '15px 32px'},
+					_1: {
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+						_1: {
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'text-decoration', _1: 'none'},
+							_1: {
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'display', _1: 'inline-block'},
+								_1: {
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'font-size', _1: '16px'},
+									_1: {
+										ctor: '::',
+										_0: {ctor: '_Tuple2', _0: 'border-radius', _1: '8px'},
+										_1: {
+											ctor: '::',
+											_0: {ctor: '_Tuple2', _0: 'width', _1: '226px'},
+											_1: {
+												ctor: '::',
+												_0: {ctor: '_Tuple2', _0: 'margin-bottom', _1: '10px'},
+												_1: {ctor: '[]'}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	});
 var _user$project$Css$basicStyleDistanceButton = {
 	ctor: '::',
 	_0: {ctor: '_Tuple2', _0: 'border', _1: 'none'},
@@ -8470,6 +8516,24 @@ var _user$project$Css$basicStyleDistanceButton = {
 		}
 	}
 };
+var _user$project$Css$warningMsgStyle = _elm_lang$html$Html_Attributes$style(
+	{
+		ctor: '::',
+		_0: {ctor: '_Tuple2', _0: 'font-family', _1: 'Times New Roman'},
+		_1: {
+			ctor: '::',
+			_0: {ctor: '_Tuple2', _0: 'font-size', _1: '30px'},
+			_1: {
+				ctor: '::',
+				_0: {ctor: '_Tuple2', _0: 'text-allign', _1: 'center'},
+				_1: {
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'color', _1: 'orange'},
+					_1: {ctor: '[]'}
+				}
+			}
+		}
+	});
 var _user$project$Css$errorMsgStyle = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
@@ -8534,24 +8598,6 @@ var _user$project$Css$myStyle = _elm_lang$html$Html_Attributes$style(
 	});
 var _user$project$Css$col = '#00FF80';
 var _user$project$Css$orange = '#FF8C00';
-var _user$project$Css$warningMsgStyle = _elm_lang$html$Html_Attributes$style(
-	{
-		ctor: '::',
-		_0: {ctor: '_Tuple2', _0: 'font-family', _1: 'Times New Roman'},
-		_1: {
-			ctor: '::',
-			_0: {ctor: '_Tuple2', _0: 'font-size', _1: '30px'},
-			_1: {
-				ctor: '::',
-				_0: {ctor: '_Tuple2', _0: 'text-allign', _1: 'center'},
-				_1: {
-					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: 'color', _1: _user$project$Css$orange},
-					_1: {ctor: '[]'}
-				}
-			}
-		}
-	});
 var _user$project$Css$styleDecimalButton = _elm_lang$html$Html_Attributes$style(
 	{
 		ctor: '::',
@@ -8582,7 +8628,7 @@ var _user$project$Css$styleDecimalButton = _elm_lang$html$Html_Attributes$style(
 										_0: {ctor: '_Tuple2', _0: 'border-radius', _1: '8px'},
 										_1: {
 											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: 'width', _1: '240px'},
+											_0: {ctor: '_Tuple2', _0: 'width', _1: '226px'},
 											_1: {
 												ctor: '::',
 												_0: {ctor: '_Tuple2', _0: 'margin-bottom', _1: '10px'},
@@ -8685,7 +8731,11 @@ var _user$project$Models$Model = function (a) {
 								return function (i) {
 									return function (j) {
 										return function (k) {
-											return {textContent: a, distanceChosen: b, splitTimes: c, lapTimes: d, lapTimesFloats: e, infoMsg: f, rounding: g, distanceButtons: h, outputFormatString: i, delimiter: j, decimalLimiter: k};
+											return function (l) {
+												return function (m) {
+													return {textContent: a, distanceChosen: b, splitTimes: c, lapTimes: d, lapTimesFloats: e, infoMsg: f, rounding: g, distanceButtons: h, outputFormatString: i, delimiter: j, decimalLimiter: k, currentMode: l, lapProgressionString: m};
+												};
+											};
 										};
 									};
 								};
@@ -8697,13 +8747,23 @@ var _user$project$Models$Model = function (a) {
 		};
 	};
 };
-var _user$project$Models$DataModel = {};
+var _user$project$Models$Mode = F4(
+	function (a, b, c, d) {
+		return {modeType: a, infoWhenBlank: b, checkInput: c, getLapTimes: d};
+	});
+var _user$project$Models$LapProgessionData = function (a) {
+	return {lapProgression: a};
+};
 var _user$project$Models$D10000 = {ctor: 'D10000'};
 var _user$project$Models$D5000 = {ctor: 'D5000'};
 var _user$project$Models$D3000 = {ctor: 'D3000'};
 var _user$project$Models$D1500 = {ctor: 'D1500'};
 var _user$project$Models$D1000 = {ctor: 'D1000'};
 var _user$project$Models$D500 = {ctor: 'D500'};
+var _user$project$Models$LapProgressionInput = function (a) {
+	return {ctor: 'LapProgressionInput', _0: a};
+};
+var _user$project$Models$ModeButtonClicked = {ctor: 'ModeButtonClicked'};
 var _user$project$Models$TestDataButtonClicked = function (a) {
 	return {ctor: 'TestDataButtonClicked', _0: a};
 };
@@ -8719,6 +8779,13 @@ var _user$project$Models$FormatInput = function (a) {
 var _user$project$Models$AreaInput = function (a) {
 	return {ctor: 'AreaInput', _0: a};
 };
+var _user$project$Models$ModelArg = function (a) {
+	return {ctor: 'ModelArg', _0: a};
+};
+var _user$project$Models$LapTimeMode = function (a) {
+	return {ctor: 'LapTimeMode', _0: a};
+};
+var _user$project$Models$SplitTimesMode = {ctor: 'SplitTimesMode'};
 var _user$project$Models$Truncate = {ctor: 'Truncate'};
 var _user$project$Models$Round = {ctor: 'Round'};
 var _user$project$Models$WarningMsg = function (a) {
@@ -8746,6 +8813,118 @@ var _user$project$Models$LapDistance = {ctor: 'LapDistance'};
 var _user$project$Models$TwoDecimal = {ctor: 'TwoDecimal'};
 var _user$project$Models$OneDecimal = {ctor: 'OneDecimal'};
 var _user$project$Models$ZeroDecimal = {ctor: 'ZeroDecimal'};
+
+var _user$project$DataFormat$charToLapInfo = function (x) {
+	var _p0 = x;
+	switch (_p0.valueOf()) {
+		case 'D':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapDifference);
+		case 'T':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapTime);
+		case 'H':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapSpeed);
+		case 'd':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapDistance);
+		case 'P':
+			return _elm_lang$core$Maybe$Just(_user$project$Models$LapSplitTime);
+		default:
+			return _elm_lang$core$Maybe$Nothing;
+	}
+};
+var _user$project$DataFormat$formatInfoToChar = function (info) {
+	var _p1 = info;
+	switch (_p1.ctor) {
+		case 'LapDistance':
+			return _elm_lang$core$Native_Utils.chr('d');
+		case 'LapDifference':
+			return _elm_lang$core$Native_Utils.chr('D');
+		case 'LapTime':
+			return _elm_lang$core$Native_Utils.chr('T');
+		case 'LapSpeed':
+			return _elm_lang$core$Native_Utils.chr('H');
+		default:
+			return _elm_lang$core$Native_Utils.chr('P');
+	}
+};
+var _user$project$DataFormat$defaultOutputFormat = A2(
+	_elm_lang$core$List$map,
+	_user$project$DataFormat$formatInfoToChar,
+	{
+		ctor: '::',
+		_0: _user$project$Models$LapDistance,
+		_1: {
+			ctor: '::',
+			_0: _user$project$Models$LapTime,
+			_1: {
+				ctor: '::',
+				_0: _user$project$Models$LapDifference,
+				_1: {
+					ctor: '::',
+					_0: _user$project$Models$LapSplitTime,
+					_1: {ctor: '[]'}
+				}
+			}
+		}
+	});
+var _user$project$DataFormat$getOutputFormat = function (outputStr) {
+	var res = A2(_elm_lang$core$List$filterMap, _user$project$DataFormat$charToLapInfo, outputStr);
+	var _p2 = res;
+	if (_p2.ctor === '[]') {
+		return A2(_elm_lang$core$List$filterMap, _user$project$DataFormat$charToLapInfo, _user$project$DataFormat$defaultOutputFormat);
+	} else {
+		return res;
+	}
+};
+var _user$project$DataFormat$createFormatInfo = function (model) {
+	var res = A2(
+		_elm_lang$core$List$filterMap,
+		function (x) {
+			var _p3 = _user$project$DataFormat$charToLapInfo(x);
+			if (_p3.ctor === 'Nothing') {
+				return _elm_lang$core$Maybe$Just(x);
+			} else {
+				return _elm_lang$core$Maybe$Nothing;
+			}
+		},
+		model.outputFormatString);
+	var infoTxt = function () {
+		var _p4 = res;
+		if (_p4.ctor === '[]') {
+			return '';
+		} else {
+			return A2(
+				_elm_lang$core$Basics_ops['++'],
+				' Ugyldig symbol : ',
+				_elm_lang$core$String$fromChar(_p4._0));
+		}
+	}();
+	return _elm_lang$html$Html$text(infoTxt);
+};
+var _user$project$DataFormat$formatInfoText = {
+	ctor: '::',
+	_0: 'Velg formatering. Mulige valg:',
+	_1: {
+		ctor: '::',
+		_0: 'd : distanse      - antall passerte meter for hver passering',
+		_1: {
+			ctor: '::',
+			_0: 'T : rundeTid      - rundetid for runden',
+			_1: {
+				ctor: '::',
+				_0: 'D : Differanse    - differanse mellom snittrundetiden og rundetiden',
+				_1: {
+					ctor: '::',
+					_0: 'H : Hastighet     - hastighet for runden i km/t',
+					_1: {
+						ctor: '::',
+						_0: 'P : Passeringstid - passeringstid for runden \nStandard er dTDH (som også vil bli brukt hvis det er ugyldig input)',
+						_1: {ctor: '[]'}
+					}
+				}
+			}
+		}
+	}
+};
 
 var _user$project$Utils$listPadRight = F3(
 	function (nr, val, xs) {
@@ -8790,9 +8969,18 @@ var _user$project$Utils$tupleMap3 = F2(
 			_2: f(_p3._2)
 		};
 	});
+var _user$project$Utils$tupleMap2 = F2(
+	function (f, _p4) {
+		var _p5 = _p4;
+		return {
+			ctor: '_Tuple2',
+			_0: f(_p5._0),
+			_1: f(_p5._1)
+		};
+	});
 var _user$project$Utils$safeAverage = function (nrs) {
-	var _p4 = nrs;
-	if (_p4.ctor === '[]') {
+	var _p6 = nrs;
+	if (_p6.ctor === '[]') {
 		return _elm_lang$core$Maybe$Nothing;
 	} else {
 		return _elm_lang$core$Maybe$Just(
@@ -8806,17 +8994,17 @@ var _user$project$Utils$average = function (nrs) {
 };
 var _user$project$Utils$map2Full = F5(
 	function (f2, fx, fy, xs, ys) {
-		var _p5 = {ctor: '_Tuple2', _0: xs, _1: ys};
-		if (_p5._0.ctor === '[]') {
+		var _p7 = {ctor: '_Tuple2', _0: xs, _1: ys};
+		if (_p7._0.ctor === '[]') {
 			return A2(_elm_lang$core$List$map, fy, ys);
 		} else {
-			if (_p5._1.ctor === '[]') {
+			if (_p7._1.ctor === '[]') {
 				return A2(_elm_lang$core$List$map, fx, xs);
 			} else {
 				return {
 					ctor: '::',
-					_0: A2(f2, _p5._0._0, _p5._1._0),
-					_1: A5(_user$project$Utils$map2Full, f2, fx, fy, _p5._0._1, _p5._1._1)
+					_0: A2(f2, _p7._0._0, _p7._1._0),
+					_1: A5(_user$project$Utils$map2Full, f2, fx, fy, _p7._0._1, _p7._1._1)
 				};
 			}
 		}
@@ -8826,8 +9014,8 @@ var _user$project$Utils$map2FullId = F3(
 		return A5(_user$project$Utils$map2Full, f2, _elm_lang$core$Basics$identity, _elm_lang$core$Basics$identity, xs, ys);
 	});
 var _user$project$Utils$getNumberOfZeroes = function (rounding) {
-	var _p6 = rounding;
-	switch (_p6.ctor) {
+	var _p8 = rounding;
+	switch (_p8.ctor) {
 		case 'ZeroDecimal':
 			return 0;
 		case 'OneDecimal':
@@ -8837,8 +9025,8 @@ var _user$project$Utils$getNumberOfZeroes = function (rounding) {
 	}
 };
 var _user$project$Utils$getRoundingFactor = function (rounding) {
-	var _p7 = rounding;
-	switch (_p7.ctor) {
+	var _p9 = rounding;
+	switch (_p9.ctor) {
 		case 'ZeroDecimal':
 			return 1.0;
 		case 'OneDecimal':
@@ -8855,8 +9043,8 @@ var _user$project$Utils$roundToDec = F3(
 			}(
 				_elm_lang$core$Basics$toFloat(
 					function () {
-						var _p8 = lim;
-						if (_p8.ctor === 'Round') {
+						var _p10 = lim;
+						if (_p10.ctor === 'Round') {
 							return _elm_lang$core$Basics$round;
 						} else {
 							return _elm_lang$core$Basics$floor;
@@ -8876,21 +9064,25 @@ var _user$project$Utils$unlines = function (ss) {
 var _user$project$Utils$lines = function (ss) {
 	return A2(_elm_lang$core$String$split, '\n', ss);
 };
+var _user$project$Utils$last = function (_p11) {
+	return _elm_lang$core$List$head(
+		_elm_lang$core$List$reverse(_p11));
+};
 var _user$project$Utils$resultFoldr = F3(
 	function (f, v, results) {
 		return A3(
 			_elm_lang$core$List$foldr,
 			F2(
 				function (x, y) {
-					var _p9 = {ctor: '_Tuple2', _0: x, _1: y};
-					if (_p9._0.ctor === 'Ok') {
-						if (_p9._1.ctor === 'Ok') {
-							return A2(f, _p9._1._0, _p9._0._0);
+					var _p12 = {ctor: '_Tuple2', _0: x, _1: y};
+					if (_p12._0.ctor === 'Ok') {
+						if (_p12._1.ctor === 'Ok') {
+							return A2(f, _p12._1._0, _p12._0._0);
 						} else {
-							return _elm_lang$core$Result$Err(_p9._1._0);
+							return _elm_lang$core$Result$Err(_p12._1._0);
 						}
 					} else {
-						return _elm_lang$core$Result$Err(_p9._0._0);
+						return _elm_lang$core$Result$Err(_p12._0._0);
 					}
 				}),
 			v,
@@ -8902,18 +9094,18 @@ var _user$project$Utils$resultMap = F2(
 			function (acc, curXs) {
 				iter:
 				while (true) {
-					var _p10 = curXs;
-					if (_p10.ctor === '[]') {
+					var _p13 = curXs;
+					if (_p13.ctor === '[]') {
 						return _elm_lang$core$Result$Ok(acc);
 					} else {
-						var _p11 = f(_p10._0);
-						if (_p11.ctor === 'Err') {
-							return _elm_lang$core$Result$Err(_p11._0);
+						var _p14 = f(_p13._0);
+						if (_p14.ctor === 'Err') {
+							return _elm_lang$core$Result$Err(_p14._0);
 						} else {
-							var _v10 = {ctor: '::', _0: _p11._0, _1: acc},
-								_v11 = _p10._1;
-							acc = _v10;
-							curXs = _v11;
+							var _v11 = {ctor: '::', _0: _p14._0, _1: acc},
+								_v12 = _p13._1;
+							acc = _v11;
+							curXs = _v12;
 							continue iter;
 						}
 					}
@@ -8923,12 +9115,12 @@ var _user$project$Utils$resultMap = F2(
 			iter,
 			{ctor: '[]'},
 			xs);
-		var _p12 = res;
-		if (_p12.ctor === 'Err') {
-			return _elm_lang$core$Result$Err(_p12._0);
+		var _p15 = res;
+		if (_p15.ctor === 'Err') {
+			return _elm_lang$core$Result$Err(_p15._0);
 		} else {
 			return _elm_lang$core$Result$Ok(
-				_elm_lang$core$List$reverse(_p12._0));
+				_elm_lang$core$List$reverse(_p15._0));
 		}
 	});
 var _user$project$Utils$accumulate = F6(
@@ -8948,8 +9140,8 @@ var _user$project$Utils$accumulate = F6(
 	});
 var _user$project$Utils$untilScan = F4(
 	function (pred, next, f, v) {
-		var _p13 = pred(v);
-		if (_p13 === false) {
+		var _p16 = pred(v);
+		if (_p16 === false) {
 			return {
 				ctor: '::',
 				_0: f(v),
@@ -8966,20 +9158,20 @@ var _user$project$Utils$untilScan = F4(
 	});
 var _user$project$Utils$addMaybe = F2(
 	function (x, y) {
-		var _p14 = {ctor: '_Tuple2', _0: x, _1: y};
-		if (_p14._0.ctor === 'Nothing') {
+		var _p17 = {ctor: '_Tuple2', _0: x, _1: y};
+		if (_p17._0.ctor === 'Nothing') {
 			return _elm_lang$core$Maybe$Nothing;
 		} else {
-			if (_p14._1.ctor === 'Nothing') {
+			if (_p17._1.ctor === 'Nothing') {
 				return _elm_lang$core$Maybe$Nothing;
 			} else {
-				return _elm_lang$core$Maybe$Just(_p14._0._0 + _p14._1._0);
+				return _elm_lang$core$Maybe$Just(_p17._0._0 + _p17._1._0);
 			}
 		}
 	});
 var _user$project$Utils$findIndex = F2(
 	function (pred, xs) {
-		var index = A3(
+		return A3(
 			_elm_lang$core$List$foldr,
 			F2(
 				function (x, y) {
@@ -8990,11 +9182,10 @@ var _user$project$Utils$findIndex = F2(
 				}),
 			_elm_lang$core$Maybe$Nothing,
 			xs);
-		return index;
 	});
-var _user$project$Utils$uncurryFlip = function (_p15) {
+var _user$project$Utils$uncurryFlip = function (_p18) {
 	return _elm_lang$core$Basics$uncurry(
-		_elm_lang$core$Basics$flip(_p15));
+		_elm_lang$core$Basics$flip(_p18));
 };
 var _user$project$Utils$replaceRegexWith = F3(
 	function (pat, replPat, str) {
@@ -9002,24 +9193,24 @@ var _user$project$Utils$replaceRegexWith = F3(
 			_elm_lang$core$Regex$replace,
 			_elm_lang$core$Regex$All,
 			_elm_lang$core$Regex$regex(pat),
-			function (_p16) {
+			function (_p19) {
 				return replPat;
 			},
 			str);
 	});
 var _user$project$Utils$zip = F2(
 	function (xs, ys) {
-		var _p17 = {ctor: '_Tuple2', _0: xs, _1: ys};
-		if (_p17._0.ctor === '[]') {
+		var _p20 = {ctor: '_Tuple2', _0: xs, _1: ys};
+		if (_p20._0.ctor === '[]') {
 			return {ctor: '[]'};
 		} else {
-			if (_p17._1.ctor === '[]') {
+			if (_p20._1.ctor === '[]') {
 				return {ctor: '[]'};
 			} else {
 				return {
 					ctor: '::',
-					_0: {ctor: '_Tuple2', _0: _p17._0._0, _1: _p17._1._0},
-					_1: A2(_user$project$Utils$zip, _p17._0._1, _p17._1._1)
+					_0: {ctor: '_Tuple2', _0: _p20._0._0, _1: _p20._1._0},
+					_1: A2(_user$project$Utils$zip, _p20._0._1, _p20._1._1)
 				};
 			}
 		}
@@ -9122,9 +9313,43 @@ var _user$project$SpeedSkating$fixDecimalLength = F3(
 			return val;
 		}
 	});
+var _user$project$SpeedSkating$fixSplitTimes = F3(
+	function (lim, rounding, times) {
+		var f = function (secs) {
+			var mins = (_elm_lang$core$Basics$floor(secs) / 60) | 0;
+			var secsLeft = secs - (_elm_lang$core$Basics$toFloat(mins) * 60.0);
+			var fixed = A3(_user$project$SpeedSkating$fixDecimalLength, lim, rounding, secsLeft);
+			var splitted = A2(_elm_lang$core$String$split, '.', fixed);
+			var aa = function () {
+				var _p2 = splitted;
+				if (((_p2.ctor === '::') && (_p2._1.ctor === '::')) && (_p2._1._1.ctor === '[]')) {
+					return A2(
+						_elm_lang$core$Basics_ops['++'],
+						A3(
+							_elm_lang$core$String$padLeft,
+							2,
+							_elm_lang$core$Native_Utils.chr('0'),
+							_p2._0),
+						A2(_elm_lang$core$Basics_ops['++'], '.', _p2._1._0));
+				} else {
+					return fixed;
+				}
+			}();
+			var ms = _elm_lang$core$Basics$toString(mins);
+			return A2(
+				_elm_lang$core$Basics_ops['++'],
+				A3(
+					_elm_lang$core$String$padLeft,
+					2,
+					_elm_lang$core$Native_Utils.chr(' '),
+					ms),
+				A2(_elm_lang$core$Basics_ops['++'], '.', aa));
+		};
+		return A2(_elm_lang$core$List$map, f, times);
+	});
 var _user$project$SpeedSkating$nextDecimalInfo = function (dec) {
-	var _p2 = dec;
-	switch (_p2.ctor) {
+	var _p3 = dec;
+	switch (_p3.ctor) {
 		case 'ZeroDecimal':
 			return 'en desimal';
 		case 'OneDecimal':
@@ -9139,8 +9364,8 @@ var _user$project$SpeedSkating$differenceToString = F2(
 		return A2(_elm_lang$core$String$startsWith, '-', number) ? number : A2(_elm_lang$core$Basics_ops['++'], '+', number);
 	});
 var _user$project$SpeedSkating$nextRounding = function (rounding) {
-	var _p3 = rounding;
-	switch (_p3.ctor) {
+	var _p4 = rounding;
+	switch (_p4.ctor) {
 		case 'ZeroDecimal':
 			return _user$project$Models$OneDecimal;
 		case 'OneDecimal':
@@ -9174,48 +9399,53 @@ var _user$project$SpeedSkating$getLapTimesDifferences = function (model) {
 				return x - avgLapTime;
 			},
 			model.lapTimesFloats));
-	var _p4 = allDifferences;
-	if (_p4.ctor === '::') {
-		return {ctor: '::', _0: '', _1: _p4._1};
+	var _p5 = allDifferences;
+	if (_p5.ctor === '::') {
+		return {ctor: '::', _0: '', _1: _p5._1};
 	} else {
 		return {ctor: '[]'};
 	}
 };
-var _user$project$SpeedSkating$charToLapInfo = function (x) {
-	var _p5 = x;
-	switch (_p5.valueOf()) {
-		case 'D':
-			return _elm_lang$core$Maybe$Just(_user$project$Models$LapDifference);
-		case 'T':
-			return _elm_lang$core$Maybe$Just(_user$project$Models$LapTime);
-		case 'H':
-			return _elm_lang$core$Maybe$Just(_user$project$Models$LapSpeed);
-		case 'd':
-			return _elm_lang$core$Maybe$Just(_user$project$Models$LapDistance);
-		case 'P':
-			return _elm_lang$core$Maybe$Just(_user$project$Models$LapSplitTime);
-		default:
-			return _elm_lang$core$Maybe$Nothing;
+var _user$project$SpeedSkating$createSplitTimes = function (model) {
+	var _p6 = model.currentMode.modeType;
+	if (_p6.ctor === 'SplitTimesMode') {
+		return model.splitTimes;
+	} else {
+		var lapTime = _user$project$Utils$last(model.lapTimesFloats);
+		var start = _elm_lang$core$List$head(model.lapTimesFloats);
+		var _p7 = {ctor: '_Tuple2', _0: start, _1: lapTime};
+		if (((_p7.ctor === '_Tuple2') && (_p7._0.ctor === 'Just')) && (_p7._1.ctor === 'Just')) {
+			return A3(
+				_user$project$SpeedSkating$fixSplitTimes,
+				model.decimalLimiter,
+				model.rounding,
+				A3(
+					_elm_lang$core$List$scanl,
+					F2(
+						function (x, y) {
+							return x + y;
+						}),
+					_p7._0._0,
+					A2(_elm_lang$core$List$drop, 1, model.lapTimesFloats)));
+		} else {
+			return A2(_elm_lang$core$List$map, _elm_lang$core$Basics$toString, model.splitTimes);
+		}
 	}
 };
-var _user$project$SpeedSkating$formatInfoToChar = function (info) {
-	var _p6 = info;
-	switch (_p6.ctor) {
-		case 'LapDistance':
-			return _elm_lang$core$Native_Utils.chr('d');
-		case 'LapDifference':
-			return _elm_lang$core$Native_Utils.chr('D');
-		case 'LapTime':
-			return _elm_lang$core$Native_Utils.chr('T');
-		case 'LapSpeed':
-			return _elm_lang$core$Native_Utils.chr('H');
-		default:
-			return _elm_lang$core$Native_Utils.chr('P');
-	}
+var _user$project$SpeedSkating$secondsToSplit = function (secs) {
+	var mins = (_elm_lang$core$Basics$floor(secs) / 60) | 0;
+	var secsLeft = secs - (_elm_lang$core$Basics$toFloat(mins) * 60.0);
+	return A2(
+		_elm_lang$core$Basics_ops['++'],
+		_elm_lang$core$Basics$toString(mins),
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			'.',
+			_elm_lang$core$Basics$toString(secsLeft)));
 };
 var _user$project$SpeedSkating$firstRoundLength = function (dist) {
-	var _p7 = dist;
-	switch (_p7.ctor) {
+	var _p8 = dist;
+	switch (_p8.ctor) {
 		case 'D500':
 			return 100;
 		case 'D1000':
@@ -9286,168 +9516,6 @@ var _user$project$SpeedSkating$getSplitDistances = function (dist) {
 	return _user$project$Utils$unlines(
 		_elm_lang$core$List$reverse(res));
 };
-var _user$project$SpeedSkating$validMinSec = function (time) {
-	var firstTwoChars = A2(
-		_elm_lang$core$List$map,
-		_elm_lang$core$String$left(1),
-		A2(
-			_elm_lang$core$List$map,
-			A2(
-				_elm_lang$core$String$padLeft,
-				2,
-				_elm_lang$core$Native_Utils.chr('0')),
-			A2(
-				_elm_lang$core$List$take,
-				2,
-				A2(_elm_lang$core$String$split, '.', time))));
-	return A2(
-		_elm_lang$core$List$any,
-		function (x) {
-			return A2(_elm_lang$core$String$contains, x, '6789');
-		},
-		firstTwoChars);
-};
-var _user$project$SpeedSkating$checkTimesGeneral = F4(
-	function (pred, infoCreator, errorMsg, times) {
-		var res = A2(_user$project$Utils$findIndex, pred, times);
-		var _p8 = res;
-		if (_p8.ctor === 'Just') {
-			return _elm_lang$core$Result$Err(
-				infoCreator(
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						errorMsg,
-						_elm_lang$core$Basics$toString(_p8._0 + 1))));
-		} else {
-			return _elm_lang$core$Result$Ok(times);
-		}
-	});
-var _user$project$SpeedSkating$checkValidMinSec = function (splitTimes) {
-	return A4(_user$project$SpeedSkating$checkTimesGeneral, _user$project$SpeedSkating$validMinSec, _user$project$Models$ErrorMsg, 'Ugyldig tid. Minutter eller sekunder er over 60. Linje : ', splitTimes);
-};
-var _user$project$SpeedSkating$checkNoNegative = function (lapTimes) {
-	return A4(
-		_user$project$SpeedSkating$checkTimesGeneral,
-		F2(
-			function (x, y) {
-				return _elm_lang$core$Native_Utils.cmp(x, y) > 0;
-			})(0),
-		_user$project$Models$WarningMsg,
-		'Negativ rundetid for runde ',
-		lapTimes);
-};
-var _user$project$SpeedSkating$errorCheckSplitTimes = function (splitTimes) {
-	return A4(
-		_user$project$SpeedSkating$checkTimesGeneral,
-		function (_p9) {
-			return !A2(
-				_elm_lang$core$Regex$contains,
-				_elm_lang$core$Regex$regex('^\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}$'),
-				_p9);
-		},
-		_user$project$Models$ErrorMsg,
-		'feil input! Ikke på gyldig form : mm.ss.hh , for linje : ',
-		splitTimes);
-};
-var _user$project$SpeedSkating$splitToSeconds = function (splitTime) {
-	var parts = A3(
-		_elm_lang$core$Regex$split,
-		_elm_lang$core$Regex$AtMost(1),
-		_elm_lang$core$Regex$regex('[.]'),
-		splitTime);
-	var _p10 = parts;
-	if (((_p10.ctor === '::') && (_p10._1.ctor === '::')) && (_p10._1._1.ctor === '[]')) {
-		var _p11 = A2(_user$project$Utils$resultMap, _elm_lang$core$String$toFloat, parts);
-		if (_p11.ctor === 'Err') {
-			return _elm_lang$core$Result$Err(_p11._0);
-		} else {
-			return _elm_lang$core$Result$Ok(
-				A2(
-					_user$project$Utils$dotProduct,
-					_p11._0,
-					{
-						ctor: '::',
-						_0: 60.0,
-						_1: {
-							ctor: '::',
-							_0: 1.0,
-							_1: {ctor: '[]'}
-						}
-					}));
-		}
-	} else {
-		return _elm_lang$core$Result$Err(
-			A2(
-				_elm_lang$core$Basics_ops['++'],
-				'Line : ',
-				A2(_elm_lang$core$Basics_ops['++'], splitTime, ' | Could not split at .')));
-	}
-};
-var _user$project$SpeedSkating$distanceToString = function (distance) {
-	return A3(
-		_elm_lang$core$String$slice,
-		1,
-		10,
-		A2(
-			_elm_lang$core$Basics_ops['++'],
-			_elm_lang$core$Basics$toString(distance),
-			'm'));
-};
-var _user$project$SpeedSkating$calculateDiffs = function (secs) {
-	return A2(
-		_elm_lang$core$List$map,
-		_user$project$Utils$uncurryFlip(
-			F2(
-				function (x, y) {
-					return x - y;
-				})),
-		secs);
-};
-var _user$project$SpeedSkating$calculateLapTimes = function (numberList) {
-	return _user$project$SpeedSkating$calculateDiffs(
-		_user$project$Utils$combine(
-			{ctor: '::', _0: 0, _1: numberList}));
-};
-var _user$project$SpeedSkating$getLapTimes = function (model) {
-	var toSecondsResult = A2(_user$project$Utils$resultMap, _user$project$SpeedSkating$splitToSeconds, model.splitTimes);
-	var _p12 = toSecondsResult;
-	if (_p12.ctor === 'Ok') {
-		return _elm_lang$core$Result$Ok(
-			_user$project$SpeedSkating$calculateLapTimes(_p12._0));
-	} else {
-		return _elm_lang$core$Result$Err(
-			_user$project$Models$ErrorMsg(_p12._0));
-	}
-};
-var _user$project$SpeedSkating$defaultOutputFormat = A2(
-	_elm_lang$core$List$map,
-	_user$project$SpeedSkating$formatInfoToChar,
-	{
-		ctor: '::',
-		_0: _user$project$Models$LapDistance,
-		_1: {
-			ctor: '::',
-			_0: _user$project$Models$LapTime,
-			_1: {
-				ctor: '::',
-				_0: _user$project$Models$LapDifference,
-				_1: {
-					ctor: '::',
-					_0: _user$project$Models$LapSpeed,
-					_1: {ctor: '[]'}
-				}
-			}
-		}
-	});
-var _user$project$SpeedSkating$getOutputFormat = function (outputStr) {
-	var res = A2(_elm_lang$core$List$filterMap, _user$project$SpeedSkating$charToLapInfo, outputStr);
-	var _p13 = res;
-	if (_p13.ctor === '[]') {
-		return A2(_elm_lang$core$List$filterMap, _user$project$SpeedSkating$charToLapInfo, _user$project$SpeedSkating$defaultOutputFormat);
-	} else {
-		return res;
-	}
-};
 var _user$project$SpeedSkating$getLapTimesAsList = F2(
 	function (model, firstSplitTime) {
 		var pad = function (ss) {
@@ -9495,8 +9563,8 @@ var _user$project$SpeedSkating$getLapTimesAsList = F2(
 		var splitDistances = _user$project$Utils$lines(
 			_user$project$SpeedSkating$getSplitDistances(model.distanceChosen));
 		var lapInfoFunc = function (lapInfo) {
-			var _p14 = lapInfo;
-			switch (_p14.ctor) {
+			var _p9 = lapInfo;
+			switch (_p9.ctor) {
 				case 'LapDistance':
 					return _user$project$Utils$lines(
 						_user$project$SpeedSkating$getSplitDistances(model.distanceChosen));
@@ -9510,7 +9578,7 @@ var _user$project$SpeedSkating$getLapTimesAsList = F2(
 				case 'LapSpeed':
 					return _user$project$SpeedSkating$getLapSpeeds(model);
 				default:
-					return model.splitTimes;
+					return _user$project$SpeedSkating$createSplitTimes(model);
 			}
 		};
 		var lapInfoLists = function (prev) {
@@ -9525,13 +9593,229 @@ var _user$project$SpeedSkating$getLapTimesAsList = F2(
 			A2(
 				_elm_lang$core$List$map,
 				lapInfoFunc,
-				_user$project$SpeedSkating$getOutputFormat(model.outputFormatString)));
+				_user$project$DataFormat$getOutputFormat(model.outputFormatString)));
 		return A3(
 			_elm_lang$core$List$foldr,
 			concatFullWithComma,
 			{ctor: '[]'},
 			A2(_elm_lang$core$List$map, pad, lapInfoLists));
 	});
+var _user$project$SpeedSkating$checkStartAndLap = function (stringList) {
+	return (_elm_lang$core$Native_Utils.cmp(
+		_elm_lang$core$List$length(stringList),
+		2) > -1) ? _elm_lang$core$Result$Ok(stringList) : _elm_lang$core$Result$Err(
+		_user$project$Models$ErrorMsg('Skriv inn en åpningstid og minst en rundetid'));
+};
+var _user$project$SpeedSkating$validMinSec = function (time) {
+	var firstTwoChars = A2(
+		_elm_lang$core$List$map,
+		_elm_lang$core$String$left(1),
+		A2(
+			_elm_lang$core$List$map,
+			A2(
+				_elm_lang$core$String$padLeft,
+				2,
+				_elm_lang$core$Native_Utils.chr('0')),
+			A2(
+				_elm_lang$core$List$take,
+				2,
+				A2(_elm_lang$core$String$split, '.', time))));
+	return A2(
+		_elm_lang$core$List$any,
+		function (x) {
+			return A2(_elm_lang$core$String$contains, x, '6789');
+		},
+		firstTwoChars);
+};
+var _user$project$SpeedSkating$checkTimesGeneral = F4(
+	function (pred, infoCreator, errorMsg, times) {
+		var res = A2(_user$project$Utils$findIndex, pred, times);
+		var _p10 = res;
+		if (_p10.ctor === 'Just') {
+			return _elm_lang$core$Result$Err(
+				infoCreator(
+					A2(
+						_elm_lang$core$Basics_ops['++'],
+						errorMsg,
+						_elm_lang$core$Basics$toString(_p10._0 + 1))));
+		} else {
+			return _elm_lang$core$Result$Ok(times);
+		}
+	});
+var _user$project$SpeedSkating$checkValidMinSec = function (splitTimes) {
+	return A4(_user$project$SpeedSkating$checkTimesGeneral, _user$project$SpeedSkating$validMinSec, _user$project$Models$ErrorMsg, 'Ugyldig tid. Minutter eller sekunder er over 60. Linje : ', splitTimes);
+};
+var _user$project$SpeedSkating$checkNoNegative = function (lapTimes) {
+	return A4(
+		_user$project$SpeedSkating$checkTimesGeneral,
+		F2(
+			function (x, y) {
+				return _elm_lang$core$Native_Utils.cmp(x, y) > 0;
+			})(0),
+		_user$project$Models$WarningMsg,
+		'Negativ rundetid for runde ',
+		lapTimes);
+};
+var _user$project$SpeedSkating$errorCheckSplitTimes = function (splitTimes) {
+	return A4(
+		_user$project$SpeedSkating$checkTimesGeneral,
+		function (_p11) {
+			return !A2(
+				_elm_lang$core$Regex$contains,
+				_elm_lang$core$Regex$regex('^\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}$'),
+				_p11);
+		},
+		_user$project$Models$ErrorMsg,
+		'feil input! Ikke på gyldig form : mm.ss.hh , for linje : ',
+		splitTimes);
+};
+var _user$project$SpeedSkating$errorCheckLapTimes = function (lapTimes) {
+	return A4(
+		_user$project$SpeedSkating$checkTimesGeneral,
+		function (_p12) {
+			return !A2(
+				_elm_lang$core$Regex$contains,
+				_elm_lang$core$Regex$regex('^\\d{1,2}\\.\\d{1,2}$'),
+				_p12);
+		},
+		_user$project$Models$ErrorMsg,
+		'feil input! Ikke på gyldig rundetid-form : ss.hh , for linje : ',
+		lapTimes);
+};
+var _user$project$SpeedSkating$splitToSeconds = function (splitTime) {
+	var parts = A3(
+		_elm_lang$core$Regex$split,
+		_elm_lang$core$Regex$AtMost(1),
+		_elm_lang$core$Regex$regex('[.]'),
+		splitTime);
+	var _p13 = parts;
+	if (((_p13.ctor === '::') && (_p13._1.ctor === '::')) && (_p13._1._1.ctor === '[]')) {
+		var _p14 = A2(_user$project$Utils$resultMap, _elm_lang$core$String$toFloat, parts);
+		if (_p14.ctor === 'Err') {
+			return _elm_lang$core$Result$Err(_p14._0);
+		} else {
+			return _elm_lang$core$Result$Ok(
+				A2(
+					_user$project$Utils$dotProduct,
+					_p14._0,
+					{
+						ctor: '::',
+						_0: 60.0,
+						_1: {
+							ctor: '::',
+							_0: 1.0,
+							_1: {ctor: '[]'}
+						}
+					}));
+		}
+	} else {
+		return _elm_lang$core$Result$Err(
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				'Line : ',
+				A2(_elm_lang$core$Basics_ops['++'], splitTime, ' | Could not split at .')));
+	}
+};
+var _user$project$SpeedSkating$distanceToString = function (distance) {
+	return A3(
+		_elm_lang$core$String$slice,
+		1,
+		10,
+		A2(
+			_elm_lang$core$Basics_ops['++'],
+			_elm_lang$core$Basics$toString(distance),
+			'm'));
+};
+var _user$project$SpeedSkating$calculateDiffs = function (secs) {
+	return A2(
+		_elm_lang$core$List$map,
+		_user$project$Utils$uncurryFlip(
+			F2(
+				function (x, y) {
+					return x - y;
+				})),
+		secs);
+};
+var _user$project$SpeedSkating$calculateLapTimes = function (numberList) {
+	return _user$project$SpeedSkating$calculateDiffs(
+		_user$project$Utils$combine(
+			{ctor: '::', _0: 0, _1: numberList}));
+};
+
+var _user$project$LapTimeMode$generateLapTimes = function (_p0) {
+	var _p1 = _p0;
+	var _p7 = _p1._0;
+	var _p2 = A2(_user$project$Utils$resultMap, _elm_lang$core$String$toFloat, _p7.splitTimes);
+	if (_p2.ctor === 'Err') {
+		return _elm_lang$core$Result$Err(
+			_user$project$Models$ErrorMsg(_p2._0));
+	} else {
+		var _p6 = _p2._0;
+		var _p3 = {
+			ctor: '_Tuple2',
+			_0: _elm_lang$core$List$head(_p6),
+			_1: _user$project$Utils$last(_p6)
+		};
+		if (((_p3.ctor === '_Tuple2') && (_p3._0.ctor === 'Just')) && (_p3._1.ctor === 'Just')) {
+			var _p5 = _p3._1._0;
+			var lapProg = function () {
+				var _p4 = _p7.currentMode.modeType;
+				if (_p4.ctor === 'LapTimeMode') {
+					return _p4._0;
+				} else {
+					return 0.0;
+				}
+			}();
+			var res = A2(
+				_elm_lang$core$List$indexedMap,
+				F2(
+					function (i, a) {
+						return (lapProg * (_elm_lang$core$Basics$toFloat(i) + 1)) + _p5;
+					}),
+				A2(
+					_elm_lang$core$List$repeat,
+					_user$project$SpeedSkating$getNrOfLaps(_p7.distanceChosen) - _elm_lang$core$List$length(_p6),
+					_p5));
+			return _elm_lang$core$Result$Ok(
+				A2(_elm_lang$core$Basics_ops['++'], _p6, res));
+		} else {
+			return _elm_lang$core$Result$Err(
+				_user$project$Models$ErrorMsg('Ikke skrevet inn startid og rundetid'));
+		}
+	}
+};
+var _user$project$LapTimeMode$inputToStartAndLap = function (splitTimes) {
+	var _p8 = splitTimes;
+	if (((_p8.ctor === '::') && (_p8._1.ctor === '::')) && (_p8._1._1.ctor === '[]')) {
+		return _elm_lang$core$Result$Ok(
+			{ctor: '_Tuple2', _0: _p8._0, _1: _p8._1._0});
+	} else {
+		return _elm_lang$core$Result$Err('Feil: ikke skrevet inn en starttid og en rundetid');
+	}
+};
+var _user$project$LapTimeMode$getLapTimesSplitMode = function (_p9) {
+	var _p10 = _p9;
+	var toSecondsResult = A2(_user$project$Utils$resultMap, _user$project$SpeedSkating$splitToSeconds, _p10._0.splitTimes);
+	var _p11 = toSecondsResult;
+	if (_p11.ctor === 'Ok') {
+		return _elm_lang$core$Result$Ok(
+			_user$project$SpeedSkating$calculateLapTimes(_p11._0));
+	} else {
+		return _elm_lang$core$Result$Err(
+			_user$project$Models$ErrorMsg(_p11._0));
+	}
+};
+var _user$project$LapTimeMode$createLapProgressionInfo = function (model) {
+	var infoTxt = function () {
+		var _p12 = _elm_lang$core$String$toFloat(model.lapProgressionString);
+		if (_p12.ctor === 'Err') {
+			return ' Ugyldig rundeprogresjons-input. Riktig format : ss.hh';
+		} else {
+			return '';
+		}
+	}();
+	return _elm_lang$html$Html$text(infoTxt);
+};
 
 var _user$project$Test$testDataWorldRecord10k = '0:33.54\n1:03.19\n1:33.22\n2:03.41\n2:33.46\n3:03.57\n3:33.80\n4:03.81\n4:33.94\n5:03.94\n5:33.91\n6:04.04\n6:34.22\n7:04.18\n7:34.27\n8:04.23\n8:34.09\n9:04.00\n9:34.15\n10:04.30\n10:34.65\n11:04.81\n11:35.13\n12:05.51\n12:36.30';
 var _user$project$Test$testData10k = '0.41,3\n1.19,17\n1.57,01\n2.35,38\n3.13,67\n3.52,26\n4.30,54\n5.09,07\n5.47,88\n06.26,35\n07.05,50\n07.44,61\n08.23,56\n09.02,37\n09.41,64\n10.21,40\n11.00,96\n11.40,42\n12.20,58\n12.59,83\n13.39,09\n14.18,08\n14.57,52\n15.36,77\n16.16,62';
@@ -9595,10 +9879,18 @@ var _user$project$Main$nextDecimalLimiterInfo = function (lim) {
 		return 'avrunding';
 	}
 };
+var _user$project$Main$nextModeInfo = function (mode) {
+	var _p3 = mode.modeType;
+	if (_p3.ctor === 'SplitTimesMode') {
+		return 'Passeringstid';
+	} else {
+		return 'Rundetid';
+	}
+};
 var _user$project$Main$createCalculateButtons = function (model) {
 	var extraAttribues = function () {
-		var _p3 = model.splitTimes;
-		if (_p3.ctor === '[]') {
+		var _p4 = model.splitTimes;
+		if (_p4.ctor === '[]') {
 			return {
 				ctor: '::',
 				_0: _user$project$Css$disabled,
@@ -9690,7 +9982,30 @@ var _user$project$Main$createCalculateButtons = function (model) {
 									_user$project$Main$nextDecimalLimiterInfo(model.decimalLimiter))),
 							_1: {ctor: '[]'}
 						}),
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$button,
+							{
+								ctor: '::',
+								_0: _user$project$Css$styleModeButton,
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onClick(_user$project$Models$ModeButtonClicked),
+									_1: {ctor: '[]'}
+								}
+							},
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html$text(
+									A2(
+										_elm_lang$core$Basics_ops['++'],
+										'Modus: ',
+										_user$project$Main$nextModeInfo(model.currentMode))),
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		}
@@ -9737,54 +10052,52 @@ var _user$project$Main$testDataButtons = {
 		_1: {ctor: '[]'}
 	}
 };
-var _user$project$Main$createFormatInfo = function (model) {
-	var res = A2(
-		_elm_lang$core$List$filterMap,
-		function (x) {
-			var _p4 = _user$project$SpeedSkating$charToLapInfo(x);
-			if (_p4.ctor === 'Nothing') {
-				return _elm_lang$core$Maybe$Just(x);
-			} else {
-				return _elm_lang$core$Maybe$Nothing;
-			}
-		},
-		model.outputFormatString);
-	var infoTxt = function () {
-		var _p5 = res;
-		if (_p5.ctor === '[]') {
-			return '';
-		} else {
-			return A2(
-				_elm_lang$core$Basics_ops['++'],
-				'Ugyldig symbol : ',
-				_elm_lang$core$String$fromChar(_p5._0));
-		}
-	}();
-	return _elm_lang$html$Html$text(infoTxt);
-};
-var _user$project$Main$formatInfoText = {
-	ctor: '::',
-	_0: 'Velg formatering. Mulige valg:',
-	_1: {
-		ctor: '::',
-		_0: 'd : distanse      - antall passerte meter for hver passering',
-		_1: {
+var _user$project$Main$linebreak = A2(
+	_elm_lang$html$Html$br,
+	{ctor: '[]'},
+	{ctor: '[]'});
+var _user$project$Main$createLapProgressionInput = function (model) {
+	var _p5 = model.currentMode.modeType;
+	if (_p5.ctor === 'LapTimeMode') {
+		return {
 			ctor: '::',
-			_0: 'T : rundeTid      - rundetid for runden',
+			_0: _user$project$Main$linebreak,
 			_1: {
 				ctor: '::',
-				_0: 'D : Differanse    - mellom snittrundetiden og hver rundetid',
+				_0: _elm_lang$html$Html$text('Skriv inn rundeprogresjon: '),
 				_1: {
 					ctor: '::',
-					_0: 'H : Hastighet     - hastighet for runden i km/t',
+					_0: A2(
+						_elm_lang$html$Html$input,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$style(
+								{
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'width', _1: '90px'},
+									_1: {ctor: '[]'}
+								}),
+							_1: {
+								ctor: '::',
+								_0: _elm_lang$html$Html_Events$onInput(_user$project$Models$LapProgressionInput),
+								_1: {ctor: '[]'}
+							}
+						},
+						{ctor: '[]'}),
 					_1: {
 						ctor: '::',
-						_0: 'P : Passeringstid - passeringstid for runden (samme som input)\nStandard er dTDH, som også vil bli brukt hvis det er ugyldig input',
-						_1: {ctor: '[]'}
+						_0: _user$project$LapTimeMode$createLapProgressionInfo(model),
+						_1: {
+							ctor: '::',
+							_0: _user$project$Main$linebreak,
+							_1: {ctor: '[]'}
+						}
 					}
 				}
 			}
-		}
+		};
+	} else {
+		return {ctor: '[]'};
 	}
 };
 var _user$project$Main$createLapTimeTexts = function (model) {
@@ -9871,8 +10184,6 @@ var _user$project$Main$view = function (model) {
 			_elm_lang$core$List$take,
 			_user$project$SpeedSkating$getNrOfLaps(model.distanceChosen),
 			_user$project$Utils$lines(model.textContent)));
-	var avgLapTime = _user$project$SpeedSkating$getAvgLapTime(model.lapTimesFloats);
-	var avgLapTimeString = _elm_lang$core$Basics$isNaN(avgLapTime) ? '' : A3(_user$project$SpeedSkating$fixDecimalLength, model.decimalLimiter, model.rounding, avgLapTime);
 	var lapText = function () {
 		var _p9 = model.lapTimes;
 		if (_p9.ctor === '[]') {
@@ -9907,10 +10218,7 @@ var _user$project$Main$view = function (model) {
 				_elm_lang$core$Basics_ops['++'],
 				{
 					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$br,
-						{ctor: '[]'},
-						{ctor: '[]'}),
+					_0: _user$project$Main$linebreak,
 					_1: {ctor: '[]'}
 				},
 				A2(
@@ -9920,10 +10228,7 @@ var _user$project$Main$view = function (model) {
 						_elm_lang$core$Basics_ops['++'],
 						{
 							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$br,
-								{ctor: '[]'},
-								{ctor: '[]'}),
+							_0: _user$project$Main$linebreak,
 							_1: {ctor: '[]'}
 						},
 						A2(
@@ -9933,10 +10238,7 @@ var _user$project$Main$view = function (model) {
 								_elm_lang$core$Basics_ops['++'],
 								{
 									ctor: '::',
-									_0: A2(
-										_elm_lang$html$Html$br,
-										{ctor: '[]'},
-										{ctor: '[]'}),
+									_0: _user$project$Main$linebreak,
 									_1: {ctor: '[]'}
 								},
 								A2(
@@ -9946,10 +10248,7 @@ var _user$project$Main$view = function (model) {
 										_elm_lang$core$Basics_ops['++'],
 										{
 											ctor: '::',
-											_0: A2(
-												_elm_lang$html$Html$br,
-												{ctor: '[]'},
-												{ctor: '[]'}),
+											_0: _user$project$Main$linebreak,
 											_1: {
 												ctor: '::',
 												_0: A2(
@@ -10027,10 +10326,7 @@ var _user$project$Main$view = function (model) {
 															{ctor: '[]'}),
 														_1: {
 															ctor: '::',
-															_0: A2(
-																_elm_lang$html$Html$br,
-																{ctor: '[]'},
-																{ctor: '[]'}),
+															_0: _user$project$Main$linebreak,
 															_1: {ctor: '[]'}
 														}
 													}
@@ -10039,78 +10335,72 @@ var _user$project$Main$view = function (model) {
 										},
 										A2(
 											_elm_lang$core$Basics_ops['++'],
-											_user$project$Main$createLapTimeTexts(model),
-											{
-												ctor: '::',
-												_0: A2(
-													_elm_lang$html$Html$br,
-													{ctor: '[]'},
-													{ctor: '[]'}),
-												_1: {
+											_user$project$Main$createLapProgressionInput(model),
+											A2(
+												_elm_lang$core$Basics_ops['++'],
+												_user$project$Main$createLapTimeTexts(model),
+												{
 													ctor: '::',
-													_0: _elm_lang$html$Html$text('Velg formatering : '),
+													_0: _user$project$Main$linebreak,
 													_1: {
 														ctor: '::',
-														_0: A2(
-															_elm_lang$html$Html$input,
-															{
-																ctor: '::',
-																_0: _elm_lang$html$Html_Attributes$style(
-																	{
-																		ctor: '::',
-																		_0: {ctor: '_Tuple2', _0: 'width', _1: '90px'},
-																		_1: {ctor: '[]'}
-																	}),
-																_1: {
-																	ctor: '::',
-																	_0: _elm_lang$html$Html_Events$onInput(_user$project$Models$FormatInput),
-																	_1: {
-																		ctor: '::',
-																		_0: _elm_lang$html$Html_Attributes$value(
-																			_elm_lang$core$String$fromList(model.outputFormatString)),
-																		_1: {ctor: '[]'}
-																	}
-																}
-															},
-															{ctor: '[]'}),
+														_0: _elm_lang$html$Html$text('Velg formatering : '),
 														_1: {
 															ctor: '::',
-															_0: _user$project$Main$createFormatInfo(model),
-															_1: {
-																ctor: '::',
-																_0: A2(
-																	_elm_lang$html$Html$br,
-																	{ctor: '[]'},
-																	{ctor: '[]'}),
-																_1: {
+															_0: A2(
+																_elm_lang$html$Html$input,
+																{
 																	ctor: '::',
-																	_0: A2(
-																		_elm_lang$html$Html$br,
-																		{ctor: '[]'},
-																		{ctor: '[]'}),
+																	_0: _elm_lang$html$Html_Attributes$style(
+																		{
+																			ctor: '::',
+																			_0: {ctor: '_Tuple2', _0: 'width', _1: '90px'},
+																			_1: {ctor: '[]'}
+																		}),
 																	_1: {
 																		ctor: '::',
-																		_0: A2(
-																			_user$project$Main$textAsTextarea,
-																			{
-																				ctor: '::',
-																				_0: _elm_lang$html$Html_Attributes$cols(81),
-																				_1: {
+																		_0: _elm_lang$html$Html_Events$onInput(_user$project$Models$FormatInput),
+																		_1: {
+																			ctor: '::',
+																			_0: _elm_lang$html$Html_Attributes$value(
+																				_elm_lang$core$String$fromList(model.outputFormatString)),
+																			_1: {ctor: '[]'}
+																		}
+																	}
+																},
+																{ctor: '[]'}),
+															_1: {
+																ctor: '::',
+																_0: _user$project$DataFormat$createFormatInfo(model),
+																_1: {
+																	ctor: '::',
+																	_0: _user$project$Main$linebreak,
+																	_1: {
+																		ctor: '::',
+																		_0: _user$project$Main$linebreak,
+																		_1: {
+																			ctor: '::',
+																			_0: A2(
+																				_user$project$Main$textAsTextarea,
+																				{
 																					ctor: '::',
-																					_0: _elm_lang$html$Html_Attributes$rows(
-																						1 + _elm_lang$core$List$length(_user$project$Main$formatInfoText)),
-																					_1: {ctor: '[]'}
-																				}
-																			},
-																			A2(_elm_lang$core$String$join, '\n\t', _user$project$Main$formatInfoText)),
-																		_1: {ctor: '[]'}
+																					_0: _elm_lang$html$Html_Attributes$cols(81),
+																					_1: {
+																						ctor: '::',
+																						_0: _elm_lang$html$Html_Attributes$rows(
+																							1 + _elm_lang$core$List$length(_user$project$DataFormat$formatInfoText)),
+																						_1: {ctor: '[]'}
+																					}
+																				},
+																				A2(_elm_lang$core$String$join, '\n\t', _user$project$DataFormat$formatInfoText)),
+																			_1: {ctor: '[]'}
+																		}
 																	}
 																}
 															}
 														}
 													}
-												}
-											}))))))))));
+												})))))))))));
 };
 var _user$project$Main$createDistanceButtons = function (currentDist) {
 	var distances = {
@@ -10163,13 +10453,46 @@ var _user$project$Main$createDistanceButtons = function (currentDist) {
 		},
 		distances);
 };
+var _user$project$Main$changeLapProgression = F2(
+	function (mode, val) {
+		var _p10 = mode.modeType;
+		if (_p10.ctor === 'LapTimeMode') {
+			return _elm_lang$core$Native_Utils.update(
+				mode,
+				{
+					modeType: _user$project$Models$LapTimeMode(val)
+				});
+		} else {
+			return mode;
+		}
+	});
+var _user$project$Main$updateLapProgessionInput = F2(
+	function (input, model) {
+		var _p11 = _elm_lang$core$String$toFloat(input);
+		if (_p11.ctor === 'Err') {
+			return _elm_lang$core$Native_Utils.update(
+				model,
+				{
+					currentMode: A2(_user$project$Main$changeLapProgression, model.currentMode, 0.0),
+					lapProgressionString: ''
+				});
+		} else {
+			var _p12 = _p11._0;
+			return _elm_lang$core$Native_Utils.update(
+				model,
+				{
+					currentMode: A2(_user$project$Main$changeLapProgression, model.currentMode, _p12),
+					lapProgressionString: _elm_lang$core$Basics$toString(_p12)
+				});
+		}
+	});
 var _user$project$Main$updateDecimalLimiter = function (model) {
 	return _elm_lang$core$Native_Utils.update(
 		model,
 		{
 			decimalLimiter: function () {
-				var _p10 = model.decimalLimiter;
-				if (_p10.ctor === 'Round') {
+				var _p13 = model.decimalLimiter;
+				if (_p13.ctor === 'Round') {
 					return _user$project$Models$Truncate;
 				} else {
 					return _user$project$Models$Round;
@@ -10178,8 +10501,8 @@ var _user$project$Main$updateDecimalLimiter = function (model) {
 		});
 };
 var _user$project$Main$updateCalculate = function (model) {
-	var _p11 = model.splitTimes;
-	if (_p11.ctor === '[]') {
+	var _p14 = model.splitTimes;
+	if (_p14.ctor === '[]') {
 		return _elm_lang$core$Native_Utils.update(
 			model,
 			{
@@ -10195,11 +10518,11 @@ var _user$project$Main$updateCalculate = function (model) {
 			});
 	} else {
 		var resultToInfoMsg = function (res) {
-			var _p12 = res;
-			if (_p12.ctor === 'Ok') {
+			var _p15 = res;
+			if (_p15.ctor === 'Ok') {
 				return _user$project$Models$Instruction('Regnet ut');
 			} else {
-				return _p12._0;
+				return _p15._0;
 			}
 		};
 		var newModel = _elm_lang$core$Native_Utils.update(
@@ -10210,30 +10533,31 @@ var _user$project$Main$updateCalculate = function (model) {
 					_user$project$SpeedSkating$getNrOfLaps(model.distanceChosen),
 					model.splitTimes)
 			});
-		var newLapTimes = _user$project$SpeedSkating$getLapTimes(newModel);
-		var _p13 = function () {
-			var _p14 = newLapTimes;
-			if (_p14.ctor === 'Err') {
+		var newLapTimes = newModel.currentMode.getLapTimes(
+			_user$project$Models$ModelArg(newModel));
+		var _p16 = function () {
+			var _p17 = newLapTimes;
+			if (_p17.ctor === 'Err') {
 				return {
 					ctor: '_Tuple2',
 					_0: resultToInfoMsg(
-						_elm_lang$core$Result$Err(_p14._0)),
+						_elm_lang$core$Result$Err(_p17._0)),
 					_1: {ctor: '[]'}
 				};
 			} else {
-				var _p15 = _p14._0;
+				var _p18 = _p17._0;
 				return {
 					ctor: '_Tuple2',
 					_0: resultToInfoMsg(
-						_user$project$SpeedSkating$checkNoNegative(_p15)),
-					_1: _p15
+						_user$project$SpeedSkating$checkNoNegative(_p18)),
+					_1: _p18
 				};
 			}
 		}();
-		var errorMsg = _p13._0;
-		var xs = _p13._1;
-		var _p16 = {ctor: '_Tuple2', _0: errorMsg, _1: xs};
-		if (_p16._1.ctor === '[]') {
+		var errorMsg = _p16._0;
+		var xs = _p16._1;
+		var _p19 = xs;
+		if (_p19.ctor === '[]') {
 			return _elm_lang$core$Native_Utils.update(
 				newModel,
 				{
@@ -10243,7 +10567,7 @@ var _user$project$Main$updateCalculate = function (model) {
 					infoMsg: errorMsg
 				});
 		} else {
-			var _p17 = _p16._1;
+			var _p20 = _p19;
 			return _elm_lang$core$Native_Utils.update(
 				newModel,
 				{
@@ -10251,12 +10575,12 @@ var _user$project$Main$updateCalculate = function (model) {
 						_user$project$SpeedSkating$getLapTimesAsList,
 						_elm_lang$core$Native_Utils.update(
 							newModel,
-							{lapTimesFloats: _p17}),
+							{lapTimesFloats: _p20}),
 						A2(
 							_elm_lang$core$Maybe$withDefault,
 							'',
 							_elm_lang$core$List$head(newModel.splitTimes))),
-					lapTimesFloats: _p17,
+					lapTimesFloats: _p20,
 					infoMsg: errorMsg
 				});
 		}
@@ -10266,25 +10590,22 @@ var _user$project$Main$updateInput = F2(
 	function (model, newContent) {
 		var newLinesReplaced = A2(
 			_elm_lang$core$List$filter,
-			function (_p18) {
-				return !_elm_lang$core$String$isEmpty(_p18);
+			function (_p21) {
+				return !_elm_lang$core$String$isEmpty(_p21);
 			},
 			A2(
 				_elm_lang$core$List$map,
 				_elm_lang$core$String$trim,
 				_user$project$Utils$lines(
 					A3(_user$project$Utils$replaceRegexWith, '[,:;-]', '.', newContent))));
-		var errorCheckValue = A2(
-			_elm_lang$core$Result$andThen,
-			_user$project$SpeedSkating$checkValidMinSec,
-			_user$project$SpeedSkating$errorCheckSplitTimes(newLinesReplaced));
-		var _p19 = function () {
-			var _p20 = {ctor: '_Tuple2', _0: newLinesReplaced, _1: errorCheckValue};
-			_v13_0:
+		var errorCheckValue = model.currentMode.checkInput(newLinesReplaced);
+		var _p22 = function () {
+			var _p23 = {ctor: '_Tuple2', _0: newLinesReplaced, _1: errorCheckValue};
+			_v15_0:
 			do {
-				if (_p20._1.ctor === 'Ok') {
-					if (_p20._0.ctor === '[]') {
-						break _v13_0;
+				if (_p23._1.ctor === 'Ok') {
+					if (_p23._0.ctor === '[]') {
+						break _v15_0;
 					} else {
 						return {
 							ctor: '_Tuple2',
@@ -10293,12 +10614,12 @@ var _user$project$Main$updateInput = F2(
 						};
 					}
 				} else {
-					if (_p20._0.ctor === '[]') {
-						break _v13_0;
+					if (_p23._0.ctor === '[]') {
+						break _v15_0;
 					} else {
 						return {
 							ctor: '_Tuple2',
-							_0: _p20._1._0,
+							_0: _p23._1._0,
 							_1: {ctor: '[]'}
 						};
 					}
@@ -10306,83 +10627,128 @@ var _user$project$Main$updateInput = F2(
 			} while(false);
 			return {
 				ctor: '_Tuple2',
-				_0: _user$project$Models$Instruction('Skriv inn passeringstider'),
+				_0: _user$project$Models$Instruction(model.currentMode.infoWhenBlank),
 				_1: {ctor: '[]'}
 			};
 		}();
-		var infoMsg = _p19._0;
-		var splitTimes = _p19._1;
+		var infoMsg = _p22._0;
+		var splitTimes = _p22._1;
 		return _elm_lang$core$Native_Utils.update(
 			model,
 			{textContent: newContent, infoMsg: infoMsg, splitTimes: splitTimes});
 	});
+var _user$project$Main$lapTimeMode = {
+	modeType: _user$project$Models$LapTimeMode(0.0),
+	infoWhenBlank: 'Skriv inn åpningstid og en rundetid',
+	checkInput: function (_p24) {
+		return A2(
+			_elm_lang$core$Result$andThen,
+			_user$project$SpeedSkating$checkStartAndLap,
+			_user$project$SpeedSkating$errorCheckLapTimes(_p24));
+	},
+	getLapTimes: _user$project$LapTimeMode$generateLapTimes
+};
+var _user$project$Main$splitTimesMode = {
+	modeType: _user$project$Models$SplitTimesMode,
+	infoWhenBlank: 'Skriv inn passeringstider',
+	checkInput: function (_p25) {
+		return A2(
+			_elm_lang$core$Result$andThen,
+			_user$project$SpeedSkating$checkValidMinSec,
+			_user$project$SpeedSkating$errorCheckSplitTimes(_p25));
+	},
+	getLapTimes: _user$project$LapTimeMode$getLapTimesSplitMode
+};
+var _user$project$Main$changeMode = function (model) {
+	return _elm_lang$core$Native_Utils.update(
+		model,
+		{
+			currentMode: function () {
+				var _p26 = model.currentMode.modeType;
+				if (_p26.ctor === 'SplitTimesMode') {
+					return _user$project$Main$lapTimeMode;
+				} else {
+					return _user$project$Main$splitTimesMode;
+				}
+			}()
+		});
+};
 var _user$project$Main$update = F2(
 	function (msg, model) {
 		update:
 		while (true) {
-			var _p21 = msg;
-			switch (_p21.ctor) {
+			var _p27 = msg;
+			switch (_p27.ctor) {
 				case 'AreaInput':
-					return A2(_user$project$Main$updateInput, model, _p21._0);
+					return A2(_user$project$Main$updateInput, model, _p27._0);
 				case 'FormatInput':
 					return _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							outputFormatString: _elm_lang$core$String$toList(_p21._0)
+							outputFormatString: _elm_lang$core$String$toList(_p27._0)
 						});
 				case 'DistanceButtonClicked':
-					var _p22 = _p21._0;
-					var _v15 = _user$project$Models$AreaInput(model.textContent),
-						_v16 = _elm_lang$core$Native_Utils.update(
+					var _p28 = _p27._0;
+					var _v18 = _user$project$Models$AreaInput(model.textContent),
+						_v19 = _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							distanceChosen: _p22,
+							distanceChosen: _p28,
 							lapTimes: {ctor: '[]'},
 							splitTimes: A2(
 								_elm_lang$core$List$take,
-								_user$project$SpeedSkating$getNrOfLaps(_p22),
+								_user$project$SpeedSkating$getNrOfLaps(_p28),
 								model.splitTimes),
-							distanceButtons: _user$project$Main$createDistanceButtons(_p22)
+							distanceButtons: _user$project$Main$createDistanceButtons(_p28)
 						});
-					msg = _v15;
-					model = _v16;
+					msg = _v18;
+					model = _v19;
 					continue update;
 				case 'CalculateButtonClicked':
 					return _user$project$Main$updateCalculate(model);
 				case 'RoundingButtonClicked':
-					var _v17 = _user$project$Models$CalculateButtonClicked,
-						_v18 = _user$project$SpeedSkating$updateRounding(model);
-					msg = _v17;
-					model = _v18;
+					var _v20 = _user$project$Models$CalculateButtonClicked,
+						_v21 = _user$project$SpeedSkating$updateRounding(model);
+					msg = _v20;
+					model = _v21;
 					continue update;
 				case 'DecimalLimiterClicked':
-					var _v19 = _user$project$Models$CalculateButtonClicked,
-						_v20 = _user$project$Main$updateDecimalLimiter(model);
-					msg = _v19;
-					model = _v20;
+					var _v22 = _user$project$Models$CalculateButtonClicked,
+						_v23 = _user$project$Main$updateDecimalLimiter(model);
+					msg = _v22;
+					model = _v23;
 					continue update;
+				case 'TestDataButtonClicked':
+					var _v24 = _user$project$Models$AreaInput(_p27._0),
+						_v25 = model;
+					msg = _v24;
+					model = _v25;
+					continue update;
+				case 'ModeButtonClicked':
+					return _user$project$Main$changeMode(model);
 				default:
-					var _v21 = _user$project$Models$AreaInput(_p21._0),
-						_v22 = model;
-					msg = _v21;
-					model = _v22;
-					continue update;
+					return A2(_user$project$Main$updateLapProgessionInput, _p27._0, model);
 			}
 		}
 	});
-var _user$project$Main$model = {
-	textContent: '',
-	splitTimes: {ctor: '[]'},
-	distanceChosen: _user$project$Models$D10000,
-	infoMsg: _user$project$Models$Instruction('Skriv inn rundetider'),
-	lapTimes: {ctor: '[]'},
-	lapTimesFloats: {ctor: '[]'},
-	rounding: _user$project$Models$OneDecimal,
-	distanceButtons: _user$project$Main$createDistanceButtons(_user$project$Models$D10000),
-	outputFormatString: _user$project$SpeedSkating$defaultOutputFormat,
-	delimiter: _elm_lang$core$Native_Utils.chr('\t'),
-	decimalLimiter: _user$project$Models$Truncate
+var _user$project$Main$createModel = function (mode) {
+	return {
+		textContent: '',
+		splitTimes: {ctor: '[]'},
+		distanceChosen: _user$project$Models$D10000,
+		infoMsg: _user$project$Models$Instruction(mode.infoWhenBlank),
+		lapTimes: {ctor: '[]'},
+		lapTimesFloats: {ctor: '[]'},
+		rounding: _user$project$Models$OneDecimal,
+		distanceButtons: _user$project$Main$createDistanceButtons(_user$project$Models$D10000),
+		outputFormatString: _user$project$DataFormat$defaultOutputFormat,
+		delimiter: _elm_lang$core$Native_Utils.chr('\t'),
+		decimalLimiter: _user$project$Models$Truncate,
+		currentMode: mode,
+		lapProgressionString: '0.0'
+	};
 };
+var _user$project$Main$model = _user$project$Main$createModel(_user$project$Main$lapTimeMode);
 var _user$project$Main$main = _elm_lang$html$Html$beginnerProgram(
 	{model: _user$project$Main$model, update: _user$project$Main$update, view: _user$project$Main$view})();
 

@@ -24,6 +24,8 @@ type alias Model =
     , outputFormatString : List Char
     , delimiter : Char
     , decimalLimiter : DecimalLimiter
+    , currentMode : Mode
+    , lapProgressionString : String
     }
 
 
@@ -35,6 +37,29 @@ type Msg
     | RoundingButtonClicked
     | DecimalLimiterClicked
     | TestDataButtonClicked String
+    | ModeButtonClicked
+    | LapProgressionInput String
+
+
+type alias Mode =
+    { modeType : ModeType
+    , infoWhenBlank : String
+    , checkInput : List String -> Result InfoMsg (List String)
+    , getLapTimes : ModelArg -> Result InfoMsg (List Float)
+    }
+
+
+type ModelArg
+    = ModelArg Model
+
+
+type alias LapProgessionData =
+    { lapProgression : Float }
+
+
+type ModeType
+    = SplitTimesMode
+    | LapTimeMode Float
 
 
 type DecimalLimiter
@@ -46,10 +71,6 @@ type InfoMsg
     = Instruction String
     | ErrorMsg String
     | WarningMsg String
-
-
-type alias DataModel =
-    {}
 
 
 type Status
