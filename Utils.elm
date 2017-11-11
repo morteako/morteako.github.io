@@ -4,6 +4,23 @@ import Regex
 import Models exposing (..)
 
 
+splitList : (a -> Bool) -> List a -> ( List a, List a )
+splitList pred xs =
+    let
+        split prev xs =
+            case xs of
+                [] ->
+                    ( prev, [] )
+
+                x :: xs ->
+                    if pred x then
+                        ( List.reverse prev, x :: xs )
+                    else
+                        split (x :: prev) xs
+    in
+        split [] xs
+
+
 replaceChar : Char -> Char -> String -> String
 replaceChar a b xs =
     String.map
@@ -31,15 +48,7 @@ countFreq a xs =
 
 zip : List a -> List b -> List ( a, b )
 zip xs ys =
-    case ( xs, ys ) of
-        ( [], _ ) ->
-            []
-
-        ( _, [] ) ->
-            []
-
-        ( x :: xs, y :: ys ) ->
-            ( x, y ) :: zip xs ys
+    List.map2 (,) xs ys
 
 
 combine : List a -> List ( a, a )

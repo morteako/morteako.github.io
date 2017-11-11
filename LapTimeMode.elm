@@ -20,9 +20,21 @@ createLapProgressionInfo model =
         text infoTxt
 
 
+fixInterpolate splitTimes =
+    List.map3 (,,) splitTimes (List.drop 1 splitTimes) (List.drop 2 splitTimes)
+
+
+
+--|> List.map (\tup ->
+--    case tup of  (a,"-",c) ->
+
+
 getLapTimesSplitMode : ModelArg -> Result InfoMsg (List Float)
 getLapTimesSplitMode (ModelArg model) =
     let
+        interpolated =
+            (,)
+
         toSecondsResult =
             resultMap splitToSeconds model.splitTimes
     in

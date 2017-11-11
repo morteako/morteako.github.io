@@ -2,14 +2,17 @@ module Main exposing (..)
 
 import Models exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick)
 import Utils exposing (..)
 import SpeedSkating exposing (..)
-import Test exposing (..)
-import Css exposing (..)
 import DataFormat exposing (..)
 import LapTimeMode exposing (..)
+import Basics exposing (max, min)
+import View exposing (..)
+
+
+model : Model
+model =
+    createModel splitTimesMode
 
 
 createModel : Mode -> Model
@@ -22,17 +25,26 @@ createModel mode =
     , lapTimesFloats = []
     , rounding = OneDecimal
     , distanceButtons = createDistanceButtons D10000
-    , outputFormatString = defaultOutputFormat
+    , outputFormatString = createFormatString formatButtonsList
     , delimiter = '\t'
     , decimalLimiter = Truncate
     , currentMode = mode
     , lapProgressionString = "0.0"
+    , formatButtons = formatButtonsList
     }
 
 
-model : Model
-model =
-    createModel lapTimeMode
+formatButtonsList : List FormatButton
+formatButtonsList =
+    [ LapDistance
+    , LapTime
+    , LapDifference
+    , LapSpeed
+    ]
+        |> List.map createFormatButton
+        |> (\item list -> list ++ item) [ { lapInfo = LapSplitTime, on = False } ]
+        |> List.indexedMap
+            (\i fb -> { lapInfo = fb.lapInfo, on = fb.on, index = toFloat i })
 
 
 splitTimesMode : Mode
@@ -202,166 +214,46 @@ update msg model =
             update (AreaInput testData) model
 
         ModeButtonClicked ->
-            changeMode model
+            let
+                newModel =
+                    { model
+                        | formatButtons =
+                            List.map
+                                (\fb ->
+                                    if fb.lapInfo == LapSplitTime then
+                                        { fb | on = True }
+                                    else
+                                        fb
+                                )
+                                model.formatButtons
+                    }
+            in
+                updateInput (changeMode newModel) newModel.textContent
 
         LapProgressionInput input ->
             updateLapProgessionInput input model
 
+        FormatButtonClicked formatButton ->
+            updateCalculate <| updateFormatButtons (changeSwitchFormatButton formatButton model) model
 
-createDistanceButtons : Distance -> List (Html Msg)
-createDistanceButtons currentDist =
-    let
-        distances : List Distance
-        distances =
-            [ D500, D1000, D1500, D3000, D5000, D10000 ]
-
-        distanceStrings =
-            List.map distanceToString distances
-    in
-        List.map
-            (\dist ->
-                button
-                    [ if dist == currentDist then
-                        styleDistanceButtonChosen
-                      else
-                        styleDistanceButton
-                    , onClick <| DistanceButtonClicked dist
-                    ]
-                    [ text <| distanceToString dist ]
-            )
-            distances
+        FormatButtonOrderClicked formatButton dir ->
+            updateCalculate <| updateFormatButtons (changeFormatButtonOrder formatButton.index dir model.formatButtons) model
 
 
-createLapTimeTexts : Model -> List (Html msg)
-createLapTimeTexts model =
-    let
-        strings =
-            [ "Snitt  : ", "Laveste: ", "Høyeste: " ]
-
-        ( avg, best, worst ) =
-            case model.lapTimesFloats of
-                [] ->
-                    ( "", "", "" )
-
-                [ first ] ->
-                    ( "", "", "" )
-
-                --Skip first laptime because of start time ++
-                first :: rest ->
-                    tupleMap3
-                        (fixDecimalLength model.decimalLimiter model.rounding << \f -> f rest)
-                        ( average, maybeFuncWithDefault List.minimum 0.0, maybeFuncWithDefault List.maximum 0.0 )
-
-        texts =
-            List.map2 (++) strings [ avg, best, worst ]
-    in
-        [ textAsTextarea [ rows 3 ] <| unlines texts ]
+updateFormatButtons : List FormatButton -> Model -> Model
+updateFormatButtons formatButtons model =
+    { model | outputFormatString = createFormatString formatButtons, formatButtons = formatButtons }
 
 
-linebreak : Html msg
-linebreak =
-    br [] []
+
+--fix indexes
 
 
-view : Model -> Html Msg
-view model =
-    let
-        nrOfLaps =
-            getNrOfLaps model.distanceChosen
-
-        lapText =
-            case model.lapTimes of
-                [] ->
-                    --output is just the split distances
-                    getSplitDistances model.distanceChosen
-
-                _ ->
-                    unlines model.lapTimes
-
-        inputAreaValue =
-            model.textContent
-                |> lines
-                |> List.take (getNrOfLaps model.distanceChosen)
-                |> unlines
-
-        nrOfCols =
-            Basics.max 40 <| Maybe.withDefault 40 <| List.maximum <| List.map String.length <| lines lapText
-    in
-        div [ centered ] <|
-            ([]
-                ++ [ linebreak ]
-                ++ model.distanceButtons
-                ++ [ linebreak ]
-                ++ createCalculateButtons model
-                ++ [ linebreak ]
-                ++ testDataButtons
-                ++ [ linebreak
-                   , unadjustableTextarea [ cols 3, rows nrOfLaps, placeholder <| unlines (List.map toString (List.range 1 nrOfLaps)) ] []
-                   , unadjustableTextarea [ cols 15, rows nrOfLaps, onInput AreaInput, value inputAreaValue, placeholder "Tider her...." ] []
-                   , unadjustableTextarea [ cols nrOfCols, rows nrOfLaps, readonly True, value lapText, styleTabSize ] []
-                   , linebreak
-                   ]
-                ++ createLapProgressionInput model
-                ++ createLapTimeTexts model
-                ++ [ linebreak
-                   , text "Velg formatering : "
-                   , input [ style [ ( "width", "90px" ) ], onInput FormatInput, value <| String.fromList model.outputFormatString ] []
-                   , createFormatInfo model
-                   , linebreak
-                   , linebreak
-                   , textAsTextarea [ cols 81, rows <| 1 + List.length formatInfoText ] <| String.join "\n\t" formatInfoText
-                   ]
-            )
-
-
-createLapProgressionInput model =
-    case model.currentMode.modeType of
-        LapTimeMode val ->
-            [ linebreak
-            , text "Skriv inn rundeprogresjon: "
-            , input [ style [ ( "width", "90px" ) ], onInput LapProgressionInput ] []
-            , createLapProgressionInfo model
-            , linebreak
-            ]
-
-        _ ->
-            []
-
-
-testDataButtons : List (Html Msg)
-testDataButtons =
-    [ button [ styleDistanceButton, onClick <| TestDataButtonClicked Test.testData10k ] [ text "Testdata : Morten - 10k" ]
-    , button [ styleDistanceButton, onClick <| TestDataButtonClicked Test.testDataWorldRecord10k ] [ text "Testdata : Bloomen - 10k" ]
-    ]
-
-
-createCalculateButtons : Model -> List (Html Msg)
-createCalculateButtons model =
-    let
-        extraAttribues =
-            case model.splitTimes of
-                [] ->
-                    [ Css.disabled, Html.Attributes.disabled True ]
-
-                _ ->
-                    []
-    in
-        [ button (extraAttribues ++ [ styleCalculateButton, onClick CalculateButtonClicked ]) [ text <| getInfoMsgString model.infoMsg ]
-        , br [] []
-        , button (extraAttribues ++ [ styleDecimalButton, onClick RoundingButtonClicked ]) [ text <| "Bytt til " ++ nextDecimalInfo model.rounding ]
-        , button (extraAttribues ++ [ styleDecimalButton, onClick DecimalLimiterClicked ]) [ text <| "Bytt til " ++ nextDecimalLimiterInfo model.decimalLimiter ]
-        , button [ styleModeButton, onClick ModeButtonClicked ] [ text <| "Modus: " ++ nextModeInfo model.currentMode ]
-        ]
-
-
-nextModeInfo : Mode -> String
-nextModeInfo mode =
-    case mode.modeType of
-        SplitTimesMode ->
-            "Passeringstid"
-
-        LapTimeMode _ ->
-            "Rundetid"
+createFormatString : List FormatButton -> List Char
+createFormatString formatButtons =
+    formatButtons
+        |> List.filter (\x -> x.on)
+        |> List.map (\fb -> formatInfoToChar fb.lapInfo)
 
 
 changeMode : Model -> Model
@@ -375,52 +267,6 @@ changeMode model =
                 LapTimeMode _ ->
                     splitTimesMode
     }
-
-
-nextDecimalLimiterInfo : DecimalLimiter -> String
-nextDecimalLimiterInfo lim =
-    case lim of
-        Round ->
-            "trunkering"
-
-        Truncate ->
-            "avrunding"
-
-
-getInfoMsgString : InfoMsg -> String
-getInfoMsgString infoMsg =
-    case infoMsg of
-        Instruction string ->
-            string
-
-        ErrorMsg string ->
-            string
-
-        WarningMsg string ->
-            "Advarsel: " ++ string
-
-
-getInfoMsgCss : InfoMsg -> Attribute msg
-getInfoMsgCss infoMsg =
-    case infoMsg of
-        Instruction _ ->
-            instructionMsgStyle
-
-        ErrorMsg _ ->
-            errorMsgStyle
-
-        WarningMsg _ ->
-            warningMsgStyle
-
-
-textAsTextarea : List (Attribute msg) -> String -> Html msg
-textAsTextarea attributes str =
-    unadjustableTextarea ([ Css.styleNoOutline, readonly True, value str ] ++ attributes) []
-
-
-unadjustableTextarea : List (Attribute msg) -> List (Html msg) -> Html msg
-unadjustableTextarea attributes htmls =
-    textarea (Css.unadjustable :: attributes) htmls
 
 
 main : Program Never Model Msg

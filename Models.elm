@@ -3,6 +3,9 @@ module Models exposing (..)
 import Html exposing (Html)
 
 
+--import Array exposing (Array)
+
+
 type Distance
     = D500
     | D1000
@@ -26,6 +29,7 @@ type alias Model =
     , decimalLimiter : DecimalLimiter
     , currentMode : Mode
     , lapProgressionString : String
+    , formatButtons : List FormatButton
     }
 
 
@@ -39,6 +43,13 @@ type Msg
     | TestDataButtonClicked String
     | ModeButtonClicked
     | LapProgressionInput String
+    | FormatButtonClicked FormatButton
+    | FormatButtonOrderClicked FormatButton Dir
+
+
+type Dir
+    = Up
+    | Down
 
 
 type alias Mode =
@@ -91,3 +102,10 @@ type RoundingType
     = ZeroDecimal
     | OneDecimal
     | TwoDecimal
+
+
+type alias FormatButton =
+    { lapInfo : LapInfo
+    , on : Bool
+    , index : Float
+    }

@@ -13,6 +13,10 @@ grey =
     "#808080"
 
 
+greylight =
+    "#D3D3D3"
+
+
 blue =
     "#008CBA"
 
@@ -37,6 +41,30 @@ myStyle =
         , ( "font-size", "0.8em" )
         , ( "text-align", "bottom" )
         ]
+
+
+createDataFormatStyle col =
+    style <|
+        ( "background-color", col )
+            :: basicDataFormatStyle
+
+
+basicDataFormatStyle =
+    [ ( "border", "none" )
+    , ( "color", "white" )
+    , ( "padding", "15px 40px" )
+    , ( "text-align", "center" )
+    , ( "text-decoration", "none" )
+    , ( "display", "inline-block" )
+    , ( "font-size", "16px" )
+    , ( "border-radius", "20%" )
+    , ( "margin-bottom", "1px" )
+    , ( "outline", "none" )
+    ]
+
+
+testButtonStyle =
+    style <| ( "background-color", greylight ) :: basicStyleDistanceButton
 
 
 instructionMsgStyle =
